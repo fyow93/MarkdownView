@@ -524,9 +524,12 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
         const containerRect = scrollElement.getBoundingClientRect();
         const elementRect = element.getBoundingClientRect();
         const relativeTop = elementRect.top - containerRect.top + scrollElement.scrollTop;
-        const offset = 80; // 顶部偏移量
+        
+        // 统一的偏移量，与scroll-mt-24 (96px)保持一致
+        const offset = 100; // 与scroll-mt-24略微一致的偏移量
         
         const targetScrollTop = Math.max(0, relativeTop - offset);
+        console.log(`🎯 滚动到标题:`, id, '目标位置:', targetScrollTop);
         
         // 使用自定义动画实现平滑滚动
         const startScrollTop = scrollElement.scrollTop;
@@ -829,7 +832,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     const id = generateId(text);
 
     const className = `
-      scroll-m-20 font-semibold tracking-tight group
+      scroll-mt-24 font-semibold tracking-tight group
       ${level === 1 ? 'text-3xl lg:text-4xl mb-6 text-primary border-b pb-3' : ''}
       ${level === 2 ? 'text-2xl lg:text-3xl mt-8 mb-4 text-primary/90' : ''}
       ${level === 3 ? 'text-xl lg:text-2xl mt-6 mb-3 text-primary/80' : ''}
