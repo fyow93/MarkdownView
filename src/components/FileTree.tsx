@@ -160,9 +160,9 @@ const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedFile }) => {
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">{t('fileTree')}</CardTitle>
           {error && (
-            <div className="flex items-center gap-1 text-amber-600" title={`API连接失败: ${error}`}>
+            <div className="flex items-center gap-1 text-amber-600" title={`${t('apiConnectionFailed')}: ${error}`}>
               <AlertCircle className="h-4 w-4" />
-              <span className="text-xs">离线模式</span>
+              <span className="text-xs">{t('offlineMode')}</span>
             </div>
           )}
         </div>

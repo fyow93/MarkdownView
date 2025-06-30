@@ -25,13 +25,23 @@
         "fileTree": "文件树",
         "noFiles": "未找到文件",
         "loading": "加载中...",
-        "error": "加载文件树时出错"
+        "error": "加载文件树时出错",
+        "offlineMode": "离线模式",
+        "apiConnectionFailed": "API连接失败"
     },
     "Markdown": {
         "loading": "加载中...",
+        "loadingFile": "正在加载文件...",
+        "loadFailed": "加载失败",
+        "retry": "重试",
+        "updatedAt": "更新于",
         "error": "加载文件时出错",
         "noFileSelected": "请选择一个文件来查看",
-        "fileNotFound": "文件未找到"
+        "fileNotFound": "文件未找到",
+        "clearScrollPosition": "清除当前文件的滚动位置",
+        "realtimeEnabled": "实时监控已启用",
+        "realtimeConnecting": "连接中...",
+        "realtimeDisabled": "实时监控已禁用"
     },
     "RealTime": {
         "connected": "已连接",

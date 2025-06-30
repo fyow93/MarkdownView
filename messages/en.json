@@ -25,13 +25,23 @@
         "fileTree": "File Tree",
         "noFiles": "No files found",
         "loading": "Loading...",
-        "error": "Error loading file tree"
+        "error": "Error loading file tree",
+        "offlineMode": "Offline Mode",
+        "apiConnectionFailed": "API Connection Failed"
     },
     "Markdown": {
         "loading": "Loading...",
+        "loadingFile": "Loading file...",
+        "loadFailed": "Load failed",
+        "retry": "Retry",
+        "updatedAt": "Updated at",
         "error": "Error loading file",
         "noFileSelected": "Please select a file to view",
-        "fileNotFound": "File not found"
+        "fileNotFound": "File not found",
+        "clearScrollPosition": "Clear current file scroll position",
+        "realtimeEnabled": "Real-time monitoring enabled",
+        "realtimeConnecting": "Connecting...",
+        "realtimeDisabled": "Real-time monitoring disabled"
     },
     "RealTime": {
         "connected": "Connected",

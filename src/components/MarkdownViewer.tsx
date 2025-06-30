@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -42,7 +42,64 @@ interface TocItem {
 
 
 
-// Mermaid图表组件
+// 延迟渲染的Mermaid图表组件
+const LazyMermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+  const elementRef = useRef<HTMLDivElement>(null);
+
+  // 使用Intersection Observer检测组件是否可见
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          // 添加小延迟避免频繁触发
+          setTimeout(() => setShouldRender(true), 100);
+          observer.disconnect();
+        }
+      },
+      {
+        rootMargin: '200px', // 提前200px开始加载
+        threshold: 0.1
+      }
+    );
+
+    if (elementRef.current) {
+      observer.observe(elementRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  // 占位符组件
+  if (!shouldRender) {
+    return (
+      <div ref={elementRef}>
+        <Card className="my-6 bg-muted/10 border-dashed border-2 border-muted">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-4 h-4 bg-muted rounded animate-pulse"></div>
+              <span className="text-sm text-muted-foreground">
+                {isVisible ? '正在加载图表...' : '图表准备中'}
+              </span>
+              <div className="w-4 h-4 bg-muted rounded animate-pulse"></div>
+            </div>
+            <div className="mt-4 flex justify-center">
+              <div className="bg-muted/50 px-3 py-1 rounded text-xs text-muted-foreground">
+                Mermaid Chart
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return <MermaidChart chart={chart} />;
+};
+
+// 实际的Mermaid图表渲染组件
 const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -72,8 +129,8 @@ const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
       } catch (err) {
         console.error('❌ Mermaid渲染错误:', err);
         if (isMounted) {
-          const errorMessage = err instanceof Error ? err.message : '未知错误';
-          setError(`图表渲染失败: ${errorMessage}`);
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+          setError(`Chart rendering failed: ${errorMessage}`);
           setIsLoading(false);
         }
       }
@@ -92,7 +149,7 @@ const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-destructive text-base">
             <AlertCircle className="h-4 w-4" />
-            Mermaid图表渲染失败
+            Mermaid Chart Rendering Failed
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -113,7 +170,7 @@ const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
         <CardContent className="p-8">
           <div className="flex items-center justify-center gap-3">
             <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
-            <span className="text-sm text-muted-foreground">正在渲染图表...</span>
+            <span className="text-sm text-muted-foreground">Rendering chart...</span>
           </div>
         </CardContent>
       </Card>
@@ -138,7 +195,8 @@ const LeftSideToc: React.FC<{
   activeId: string,
   onItemClick: (id: string) => void,
   isVisible: boolean
-}> = ({ toc, activeId, onItemClick, isVisible }) => {
+}> = React.memo(({ toc, activeId, onItemClick, isVisible }) => {
+  const t = useTranslations('Navigation');
   const [collapsedItems, setCollapsedItems] = useState<Set<string>>(() => {
     // 从 localStorage 恢复折叠状态
     try {
@@ -149,7 +207,75 @@ const LeftSideToc: React.FC<{
     }
   });
 
-  if (!isVisible || toc.length === 0) return null;
+  const countTotalItems = useCallback((items: TocItem[]): number => {
+    return items.reduce((count, item) => {
+      return count + 1 + (item.children ? countTotalItems(item.children) : 0);
+    }, 0);
+  }, []);
+
+  const totalItems = useMemo(() => countTotalItems(toc), [toc, countTotalItems]);
+
+  const getAllItemIds = useCallback((items: TocItem[]): string[] => {
+    const ids: string[] = [];
+    const traverse = (items: TocItem[]) => {
+      items.forEach(item => {
+        if (item.children && item.children.length > 0) {
+          ids.push(item.id);
+          traverse(item.children);
+        }
+      });
+    };
+    traverse(items);
+    return ids;
+  }, []);
+
+  const expandAll = useCallback(() => {
+    setCollapsedItems(new Set());
+    try {
+      localStorage.setItem('toc-collapsed-items', JSON.stringify([]));
+    } catch (error) {
+      console.warn('Failed to save TOC collapse state:', error);
+    }
+  }, []);
+
+  const collapseAll = useCallback(() => {
+    const allIds = getAllItemIds(toc);
+    setCollapsedItems(new Set(allIds));
+    try {
+      localStorage.setItem('toc-collapsed-items', JSON.stringify(allIds));
+    } catch (error) {
+      console.warn('Failed to save TOC collapse state:', error);
+    }
+  }, [getAllItemIds, toc]);
+
+  const handleItemClick = useCallback((id: string) => {
+    // 找到目标标题的路径并展开
+    const expandToItem = (targetId: string, items: TocItem[], path: string[] = []): boolean => {
+      for (const item of items) {
+        const currentPath = [...path, item.id];
+        
+        if (item.id === targetId) {
+          // 找到目标，展开路径上的所有父级
+          setCollapsedItems(prev => {
+            const newSet = new Set(prev);
+            path.forEach(id => newSet.delete(id));
+            return newSet;
+          });
+          return true;
+        }
+        
+        if (item.children && item.children.length > 0) {
+          if (expandToItem(targetId, item.children, currentPath)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    expandToItem(id, toc);
+    onItemClick(id);
+  }, [toc, onItemClick]);
 
   const getFontSizeClass = (level: number) => {
     switch (level) {
@@ -182,73 +308,8 @@ const LeftSideToc: React.FC<{
     });
   };
 
-  const countTotalItems = (items: TocItem[]): number => {
-    return items.reduce((count, item) => {
-      return count + 1 + (item.children ? countTotalItems(item.children) : 0);
-    }, 0);
-  };
-
-  const getAllItemIds = (items: TocItem[]): string[] => {
-    const ids: string[] = [];
-    const traverse = (items: TocItem[]) => {
-      items.forEach(item => {
-        if (item.children && item.children.length > 0) {
-          ids.push(item.id);
-          traverse(item.children);
-        }
-      });
-    };
-    traverse(items);
-    return ids;
-  };
-
-  const expandAll = () => {
-    setCollapsedItems(new Set());
-    try {
-      localStorage.setItem('toc-collapsed-items', JSON.stringify([]));
-    } catch (error) {
-      console.warn('Failed to save TOC collapse state:', error);
-    }
-  };
-
-  const collapseAll = () => {
-    const allIds = getAllItemIds(toc);
-    setCollapsedItems(new Set(allIds));
-    try {
-      localStorage.setItem('toc-collapsed-items', JSON.stringify(allIds));
-    } catch (error) {
-      console.warn('Failed to save TOC collapse state:', error);
-    }
-  };
-
-  // 找到目标标题的路径并展开
-  const expandToItem = (targetId: string, items: TocItem[], path: string[] = []): boolean => {
-    for (const item of items) {
-      const currentPath = [...path, item.id];
-      
-      if (item.id === targetId) {
-        // 找到目标，展开路径上的所有父级
-        setCollapsedItems(prev => {
-          const newSet = new Set(prev);
-          path.forEach(id => newSet.delete(id));
-          return newSet;
-        });
-        return true;
-      }
-      
-      if (item.children && item.children.length > 0) {
-        if (expandToItem(targetId, item.children, currentPath)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
-
-  const handleItemClick = (id: string) => {
-    expandToItem(id, toc);
-    onItemClick(id);
-  };
+  // 如果没有目录内容且不可见，不渲染
+  if (toc.length === 0 && !isVisible) return null;
 
   const renderTocItem = (item: TocItem, depth: number = 0): React.ReactNode => {
     const hasChildren = item.children && item.children.length > 0;
@@ -276,7 +337,7 @@ const LeftSideToc: React.FC<{
                 flex-shrink-0 p-1 rounded-sm hover:bg-primary/20 transition-all duration-200
                 ${isCollapsed ? 'rotate-0' : 'rotate-90'}
               `}
-              title={isCollapsed ? '展开子目录' : '折叠子目录'}
+              title={isCollapsed ? 'Expand subdirectory' : 'Collapse subdirectory'}
             >
               <ChevronRight className="h-3 w-3 transition-transform duration-200" />
             </button>
@@ -322,41 +383,27 @@ const LeftSideToc: React.FC<{
   };
 
   return (
-    <div className="w-80 flex-shrink-0 h-full">
-      <Card className="h-full bg-gradient-to-br from-background to-muted/30 border-primary/20">
+    <div 
+      className={`
+        flex-shrink-0 h-full pr-2 transition-all duration-200 ease-in-out overflow-hidden
+        ${isVisible ? 'w-80 opacity-100' : 'w-0 opacity-0'}
+      `}
+    >
+      <Card className="h-full bg-gradient-to-br from-background to-muted/30 border-primary/20 w-80">
         <CardHeader className="pb-3 border-b bg-gradient-to-r from-primary/5 to-primary/10">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
               <List className="h-4 w-4 text-primary" />
-              文档目录
+              {t('tableOfContents')}
               <Badge variant="secondary" className="text-xs">
-                {countTotalItems(toc)}
+                {totalItems}
               </Badge>
             </CardTitle>
-            <div className="flex items-center gap-1">
-              <Button
-                onClick={expandAll}
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                title="展开所有"
-              >
-                <ChevronDown className="h-3 w-3" />
-              </Button>
-              <Button
-                onClick={collapseAll}
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                title="折叠所有"
-              >
-                <ChevronRight className="h-3 w-3" />
-              </Button>
-            </div>
+            
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <ScrollArea className="h-[calc(100vh-8rem)]">
+          <ScrollArea className="h-[calc(100vh-10rem)]">
             <div className="p-4 space-y-1">
               {toc.map(item => renderTocItem(item))}
             </div>
@@ -365,9 +412,21 @@ const LeftSideToc: React.FC<{
       </Card>
     </div>
   );
+});
+
+
+
+// 全局缓存 - 限制最大缓存数量防止内存泄漏
+const MAX_CACHE_SIZE = 50;
+const contentCache = new Map<string, { content: string; toc: TocItem[]; lastModified: string }>();
+
+// 缓存管理函数
+const manageCacheSize = () => {
+  if (contentCache.size > MAX_CACHE_SIZE) {
+    const firstKey = contentCache.keys().next().value;
+    contentCache.delete(firstKey);
+  }
 };
-
-
 
 const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect }) => {
   const [content, setContent] = useState<string>('');
@@ -384,10 +443,11 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   const contentRef = useRef<HTMLDivElement>(null);
   const locale = useLocale();
   const t = useTranslations('Markdown');
+  const tNav = useTranslations('Navigation');
 
   // 改进的目录生成函数，正确处理HTML标签
   // 统一的ID生成函数，确保目录和标题元素使用相同的ID生成逻辑
-  const generateId = (text: string): string => {
+  const generateId = useCallback((text: string): string => {
     // 清理HTML标签和格式符号
     const cleanText = text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim();
     const id = cleanText
@@ -396,9 +456,9 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       .replace(/\s+/g, '-');
     
     return id;
-  };
+  }, []);
 
-  const generateToc = (markdown: string): TocItem[] => {
+  const generateToc = useCallback((markdown: string): TocItem[] => {
     const headingRegex = /^(#{1,6})\s+(.+)$/gm;
     const flatHeadings: TocItem[] = [];
     let match;
@@ -452,7 +512,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     };
 
     return buildHierarchy(flatHeadings);
-  };
+  }, [generateId]);
 
   // 滚动到指定标题
   const scrollToHeading = (id: string) => {
@@ -542,6 +602,10 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       setLoading(true);
       setError(null);
       
+      // 检查缓存
+      const cacheKey = `${locale}:${filePath}`;
+      const cached = contentCache.get(cacheKey);
+      
       const response = await fetch(`/${locale}/api/file/${encodeURIComponent(filePath)}`);
       
       if (!response.ok) {
@@ -550,23 +614,41 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       }
       
       const data = await response.json();
+      
+      // 如果缓存存在且文件未修改，使用缓存
+      if (cached && cached.lastModified === data.lastModified) {
+        setContent(cached.content);
+        setToc(cached.toc);
+        setLastModified(data.lastModified);
+        setLastUpdateTime(new Date().toLocaleString());
+        return;
+      }
+      
+      // 生成新内容和目录
+      const newToc = generateToc(data.content);
+      
+      // 更新缓存
+      manageCacheSize();
+      contentCache.set(cacheKey, {
+        content: data.content,
+        toc: newToc,
+        lastModified: data.lastModified
+      });
+      
       setContent(data.content);
+      setToc(newToc);
       setLastModified(data.lastModified);
       setLastUpdateTime(new Date().toLocaleString());
       
-      // 生成目录
-      const newToc = generateToc(data.content);
-      setToc(newToc);
-      
     } catch (err) {
       console.error('Failed to load content:', err);
-      setError(err instanceof Error ? err.message : '加载文件失败');
+      setError(err instanceof Error ? err.message : t('error'));
       setContent('');
       setToc([]);
     } finally {
       setLoading(false);
     }
-  }, [filePath, locale]);
+  }, [filePath, locale, generateToc, t]);
 
   // 初始化mermaid配置
   useEffect(() => {
@@ -619,9 +701,18 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
             setLastModified(data.lastModified);
             setLastUpdateTime(new Date().toLocaleString());
             
-            // 重新生成目录
+            // 重新生成目录并更新缓存
             const newToc = generateToc(data.content);
             setToc(newToc);
+            
+            // 更新缓存
+            const cacheKey = `${locale}:${filePath}`;
+            manageCacheSize();
+            contentCache.set(cacheKey, {
+              content: data.content,
+              toc: newToc,
+              lastModified: data.lastModified
+            });
           } else if (!lastModified) {
             setLastModified(data.lastModified);
           }
@@ -676,6 +767,14 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   useEffect(() => {
     loadContent();
   }, [loadContent]);
+
+  // 清理效果：在组件卸载时清理缓存（可选）
+  useEffect(() => {
+    return () => {
+      // 可以在这里执行清理操作，但通常保留缓存更好
+      // 只在绝对必要时清理特定缓存项
+    };
+  }, []);
 
   // 内容加载完成后恢复滚动位置
   useEffect(() => {
@@ -732,7 +831,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     const language = match ? match[1] : '';
     
     if (language === 'mermaid') {
-      return <MermaidChart chart={String(children).replace(/\n$/, '')} />;
+      return <LazyMermaidChart chart={String(children).replace(/\n$/, '')} />;
     }
     
     return match ? (
@@ -764,11 +863,34 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   };
 
   // 处理文件选择
-  const handleFileSelect = (selectedFilePath: string) => {
+  const handleFileSelect = useCallback((selectedFilePath: string) => {
     if (onFileSelect) {
       onFileSelect(selectedFilePath);
     }
-  };
+  }, [onFileSelect]);
+
+  // 预加载相关文件（可选优化）
+  const preloadFile = useCallback(async (filePath: string) => {
+    const cacheKey = `${locale}:${filePath}`;
+    if (!contentCache.has(cacheKey)) {
+      try {
+        const response = await fetch(`/${locale}/api/file/${encodeURIComponent(filePath)}`);
+        if (response.ok) {
+          const data = await response.json();
+          const newToc = generateToc(data.content);
+          manageCacheSize();
+          contentCache.set(cacheKey, {
+            content: data.content,
+            toc: newToc,
+            lastModified: data.lastModified
+          });
+        }
+      } catch (error) {
+        // 预加载失败不影响主要功能
+        console.debug('Preload failed:', error);
+      }
+    }
+  }, [locale, generateToc]);
 
   if (!filePath) {
     return (
@@ -782,7 +904,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
         />
         
         {/* 主内容区域 */}
-        <div className="flex-1">
+        <div className={`flex-1 transition-all duration-200 ease-in-out ${showToc ? 'pl-2' : 'pl-0'}`}>
           <Card className="h-full bg-gradient-to-br from-background to-muted/30">
             <CardContent className="flex items-center justify-center h-full">
               <div className="text-center space-y-4">
@@ -803,7 +925,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
 
   if (loading) {
     return (
-      <div className="h-full flex relative">
+      <div className="h-full flex relative p-4">
         <LeftSideToc 
           toc={toc} 
           activeId={activeHeadingId}
@@ -811,15 +933,15 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
           isVisible={showToc}
         />
         
-        <div className="flex-1">
-          <Card className="h-full bg-gradient-to-br from-background to-muted/30">
+                  <div className={`flex-1 transition-all duration-200 ease-in-out ${showToc ? 'pl-2' : 'pl-0'}`}>
+            <Card className="h-full bg-gradient-to-br from-background to-muted/30">
             <CardContent className="flex items-center justify-center h-full">
               <div className="text-center space-y-4">
                 <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
                 </div>
                 <div>
-                  <div className="text-lg font-medium mb-2">正在加载文件...</div>
+                  <div className="text-lg font-medium mb-2">{t('loadingFile')}</div>
                   <div className="text-sm text-muted-foreground">{filePath}</div>
                 </div>
               </div>
@@ -832,7 +954,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
 
   if (error) {
     return (
-      <div className="h-full flex relative">
+      <div className="h-full flex relative p-4">
         <LeftSideToc 
           toc={toc} 
           activeId={activeHeadingId}
@@ -840,19 +962,19 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
           isVisible={showToc}
         />
         
-        <div className="flex-1">
-          <Card className="h-full border-destructive/50 bg-destructive/5">
+                  <div className={`flex-1 transition-all duration-200 ease-in-out ${showToc ? 'pl-2' : 'pl-0'}`}>
+            <Card className="h-full border-destructive/50 bg-destructive/5">
             <CardContent className="flex items-center justify-center h-full">
               <div className="text-center space-y-4">
                 <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
                   <AlertCircle className="h-8 w-8 text-destructive" />
                 </div>
                 <div>
-                  <div className="text-lg font-medium mb-2 text-destructive">加载失败</div>
+                  <div className="text-lg font-medium mb-2 text-destructive">{t('loadFailed')}</div>
                   <div className="text-sm text-muted-foreground mb-4">{error}</div>
                   <Button onClick={loadContent} variant="outline" className="gap-2">
                     <RefreshCw className="h-4 w-4" />
-                    重试
+                    {t('retry')}
                   </Button>
                 </div>
               </div>
@@ -864,7 +986,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   }
 
   return (
-    <div className="h-full flex relative">
+    <div className="h-full flex relative p-4">
       {/* 左侧目录 */}
       <LeftSideToc 
         toc={toc} 
@@ -874,25 +996,11 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       />
       
       {/* 主内容区域 */}
-      <div className="flex-1">
+      <div className={`flex-1 transition-all duration-200 ease-in-out ${showToc ? 'pl-2' : 'pl-0'}`}>
         <Card className="h-full bg-gradient-to-br from-background to-muted/20">
           <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
-                  <FileText className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg truncate">{filePath}</CardTitle>
-                  {lastUpdateTime && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                      <Clock className="h-3 w-3" />
-                      <span>更新于 {lastUpdateTime}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
                 {toc.length > 0 && (
                   <Button
                     onClick={() => setShowToc(!showToc)}
@@ -901,16 +1009,29 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
                     className="gap-2"
                   >
                     <List className="h-4 w-4" />
-                    {showToc ? '隐藏目录' : '显示目录'}
+                    {showToc ? tNav('hideToc') : tNav('showToc')}
                   </Button>
                 )}
-                <Separator orientation="vertical" className="h-6" />
+                <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
+                  <FileText className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg truncate">{filePath ? filePath.split('/').pop() : ''}</CardTitle>
+                  {lastUpdateTime && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                      <Clock className="h-3 w-3" />
+                      <span>{t('updatedAt')} {lastUpdateTime}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
                 <Button
                   onClick={() => setIsRealTimeEnabled(!isRealTimeEnabled)}
                   variant="ghost"
                   size="sm"
                   className={`${isRealTimeEnabled && isConnected ? 'text-green-600' : 'text-muted-foreground'}`}
-                  title={isRealTimeEnabled ? (isConnected ? '实时监控已启用' : '连接中...') : '实时监控已禁用'}
+                  title={isRealTimeEnabled ? (isConnected ? t('realtimeEnabled') : t('realtimeConnecting')) : t('realtimeDisabled')}
                 >
                   {isRealTimeEnabled && isConnected ? (
                     <Wifi className="h-4 w-4" />
@@ -922,7 +1043,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
                   onClick={clearCurrentScrollPosition} 
                   variant="ghost" 
                   size="sm"
-                  title="清除当前文件的滚动位置"
+                  title={t('clearScrollPosition')}
                 >
                   <MapPin className="h-4 w-4" />
                 </Button>
@@ -933,7 +1054,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <ScrollArea ref={scrollAreaRef} className="h-[calc(100vh-12rem)]">
+            <ScrollArea ref={scrollAreaRef} className="h-[calc(100vh-14rem)]">
               <div ref={contentRef} className="p-8">
                 <div className="prose prose-slate dark:prose-invert max-w-none">
                   <ReactMarkdown
