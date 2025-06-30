@@ -525,12 +525,44 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     const element = document.getElementById(id);
     console.log('🔍 查找DOM元素:', element ? '找到' : '未找到', element);
     
+    // 特别针对一级标题的调试
+    if (!element) {
+      console.log('❌ 未找到元素，尝试其他方法查找...');
+      const allH1 = document.querySelectorAll('h1');
+      console.log('📋 页面上所有H1标题:', Array.from(allH1).map(h => ({ id: h.id, text: h.textContent })));
+      
+      // 尝试通过文本内容查找
+      const foundByText = Array.from(allH1).find(h => h.id === id);
+      if (foundByText) {
+        console.log('✅ 通过文本匹配找到H1:', foundByText);
+        element = foundByText;
+      }
+    }
+    
+    if (element) {
+      console.log('🎯 找到目标元素:', element.tagName, element.id, element.textContent);
+      console.log('📐 元素位置信息:', {
+        offsetTop: element.offsetTop,
+        offsetLeft: element.offsetLeft,
+        clientHeight: element.clientHeight,
+        scrollTop: element.scrollTop,
+        boundingRect: element.getBoundingClientRect()
+      });
+    }
+    
     if (element && scrollAreaRef.current) {
       const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollElement) {
         const containerRect = scrollElement.getBoundingClientRect();
         const elementRect = element.getBoundingClientRect();
         const relativeTop = elementRect.top - containerRect.top + scrollElement.scrollTop;
+        
+        console.log('📊 滚动计算:', {
+          containerRect,
+          elementRect,
+          relativeTop,
+          scrollElementTop: scrollElement.scrollTop
+        });
         
         // 统一的偏移量，与scroll-mt-24 (96px)保持一致
         const offset = 100; // 与scroll-mt-24略微一致的偏移量
@@ -559,12 +591,18 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
           
           if (progress < 1) {
             requestAnimationFrame(animateScroll);
+          } else {
+            console.log('✅ 滚动动画完成');
           }
         };
         
         requestAnimationFrame(animateScroll);
         setActiveHeadingId(id);
+      } else {
+        console.log('❌ 未找到滚动容器');
       }
+    } else {
+      console.log('❌ 跳转失败:', element ? '找到元素但未找到滚动区域' : '未找到目标元素');
     }
   };
 
@@ -802,22 +840,92 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
 
   // 调试函数：检查页面中所有标题的ID
   const debugHeadingIds = () => {
-    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    console.log('🔍 页面中的所有标题ID:');
-    headings.forEach((heading, index) => {
-      console.log(`  ${index + 1}. ${heading.tagName} ID="${heading.id}" 文本="${heading.textContent}"`);
-    });
+    console.log('🚨=== 标题跳转调试信息 ===🚨');
     
-    console.log('📚 目录中的所有ID:');
+    // 获取页面上所有标题元素
+    const allHeadings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    console.log('📋 页面上的标题元素:');
+    Array.from(allHeadings).forEach((heading, index) => {
+      console.log(`  ${index + 1}. ${heading.tagName} id="${heading.id}" text="${heading.textContent}"`);
+    });
+
+    // 专门检查一级标题
+    const h1Elements = document.querySelectorAll('h1');
+    console.log('🔍 专门检查H1标题:');
+    Array.from(h1Elements).forEach((h1, index) => {
+      console.log(`  H1 ${index + 1}:`, {
+        id: h1.id,
+        text: h1.textContent,
+        element: h1,
+        offsetTop: h1.offsetTop,
+        offsetLeft: h1.offsetLeft,
+        scrollTop: h1.scrollTop,
+        boundingRect: h1.getBoundingClientRect(),
+        className: h1.className,
+        style: h1.style.cssText,
+        parentElement: h1.parentElement?.tagName
+      });
+    });
+
+    // 获取TOC中的所有ID
     const getAllTocIds = (items: TocItem[], prefix = '') => {
+      const ids: string[] = [];
       items.forEach((item, index) => {
-        console.log(`  ${prefix}${index + 1}. ${item.text} ID="${item.id}" Level=${item.level}`);
-        if (item.children && item.children.length > 0) {
-          getAllTocIds(item.children, prefix + '  ');
+        const currentPrefix = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
+        console.log(`${currentPrefix}. Level ${item.level}: "${item.text}" -> id: "${item.id}"`);
+        ids.push(item.id);
+        if (item.children) {
+          ids.push(...getAllTocIds(item.children, currentPrefix));
         }
       });
+      return ids;
     };
-    getAllTocIds(toc);
+
+    console.log('📚 目录中的标题ID:');
+    const tocIds = getAllTocIds(toc);
+
+    // 专门检查一级标题的目录项
+    const h1TocItems = toc.filter(item => item.level === 1);
+    console.log('🎯 专门检查H1目录项:');
+    h1TocItems.forEach((item, index) => {
+      console.log(`  H1目录 ${index + 1}:`, {
+        id: item.id,
+        text: item.text,
+        level: item.level,
+        hasChildren: !!item.children,
+        childrenCount: item.children?.length || 0
+      });
+      
+      // 检查对应的DOM元素
+      const domElement = document.getElementById(item.id);
+      console.log(`    对应DOM元素:`, domElement ? '找到' : '未找到', domElement);
+      if (domElement) {
+        console.log(`    DOM详情:`, {
+          tagName: domElement.tagName,
+          className: domElement.className,
+          textContent: domElement.textContent,
+          offsetTop: domElement.offsetTop
+        });
+      }
+    });
+
+    // 比较差异
+    console.log('⚖️ 对比页面标题与目录标题:');
+    const pageHeadingIds = Array.from(allHeadings).map(h => h.id);
+    const missingInPage = tocIds.filter(id => !pageHeadingIds.includes(id));
+    const missingInToc = pageHeadingIds.filter(id => id && !tocIds.includes(id));
+    
+    if (missingInPage.length > 0) {
+      console.log('❌ 目录中有但页面中没有的ID:', missingInPage);
+    }
+    if (missingInToc.length > 0) {
+      console.log('❌ 页面中有但目录中没有的ID:', missingInToc);
+    }
+    if (missingInPage.length === 0 && missingInToc.length === 0) {
+      console.log('✅ 目录和页面标题ID完全匹配');
+    }
+
+    console.log('🚨=== 调试信息结束 ===🚨');
   };
 
   useEffect(() => {
@@ -1121,14 +1229,34 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
                 >
                   <MapPin className="h-4 w-4" />
                 </Button>
-                <Button 
-                  onClick={debugHeadingIds} 
-                  variant="ghost" 
-                  size="sm"
-                  title="调试标题ID匹配"
-                >
-                  🔍
-                </Button>
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={debugHeadingIds}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                    >
+                      🐛 调试
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const h1Items = toc.filter(item => item.level === 1);
+                        if (h1Items.length > 0) {
+                          console.log('🧪 测试第一个H1标题跳转:', h1Items[0].id);
+                          scrollToHeading(h1Items[0].id);
+                        } else {
+                          console.log('❌ 没有找到H1标题');
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+                    >
+                      🧪 测试H1
+                    </Button>
+                  </div>
+                )}
                 <Button onClick={loadContent} variant="ghost" size="sm">
                   <RefreshCw className="h-4 w-4" />
                 </Button>
