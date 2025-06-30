@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -195,21 +195,6 @@ export const DropdownFileTree: React.FC<{
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <Card className="absolute top-full left-0 mt-2 w-80 max-h-96 z-50 bg-background/95 backdrop-blur-sm border-primary/20 shadow-lg">
-            <CardHeader className="px-3 py-2 border-b">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-medium">{t('fileTree')}</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={fetchFileTree}
-                  disabled={loading}
-                  className="h-6 w-6 p-0"
-                >
-                  <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-            </CardHeader>
-            
             <CardContent className="p-2">
               {loading ? (
                 <div className="flex items-center justify-center py-8">

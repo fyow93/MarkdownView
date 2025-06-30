@@ -567,6 +567,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       const scrollTop = scrollElement.scrollTop;
       const scrollKey = `scroll-${filePath}`;
       localStorage.setItem(scrollKey, scrollTop.toString());
+      console.log('💾 保存阅读位置:', filePath, '位置:', scrollTop);
     }
   }, [filePath]);
 
@@ -580,13 +581,20 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     if (savedPosition) {
       const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollElement) {
+        const targetPosition = parseInt(savedPosition, 10);
+        console.log('📍 恢复阅读位置:', filePath, '位置:', targetPosition);
+        
+        // 等待内容完全渲染后再滚动
         setTimeout(() => {
           scrollElement.scrollTo({
-            top: parseInt(savedPosition, 10),
+            top: targetPosition,
             behavior: 'auto'
           });
-        }, 100);
+          console.log('✅ 阅读位置已恢复');
+        }, 200);
       }
+    } else {
+      console.log('📖 新文件，从顶部开始阅读:', filePath);
     }
   }, [filePath]);
 
@@ -761,20 +769,51 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     
     const scrollKey = `scroll-${filePath}`;
     localStorage.removeItem(scrollKey);
-    console.log('🗑️ 清除滚动位置:', filePath);
+    console.log('🗑️ 清除阅读位置:', filePath);
+  };
+
+  // 清理所有滚动位置记录
+  const clearAllScrollPositions = () => {
+    const keys = Object.keys(localStorage);
+    const scrollKeys = keys.filter(key => key.startsWith('scroll-'));
+    scrollKeys.forEach(key => localStorage.removeItem(key));
+    console.log('🧹 清理所有阅读位置记录:', scrollKeys.length, '个文件');
+  };
+
+  // 获取所有已保存阅读位置的文件
+  const getSavedScrollPositions = () => {
+    const keys = Object.keys(localStorage);
+    const scrollKeys = keys.filter(key => key.startsWith('scroll-'));
+    return scrollKeys.map(key => ({
+      filePath: key.replace('scroll-', ''),
+      position: parseInt(localStorage.getItem(key) || '0', 10)
+    }));
   };
 
   useEffect(() => {
     loadContent();
   }, [loadContent]);
 
-  // 清理效果：在组件卸载时清理缓存（可选）
+  // 组件卸载时保存当前阅读位置
   useEffect(() => {
     return () => {
-      // 可以在这里执行清理操作，但通常保留缓存更好
-      // 只在绝对必要时清理特定缓存项
+      // 确保在组件卸载时保存当前阅读位置
+      saveScrollPosition();
     };
-  }, []);
+  }, [saveScrollPosition]);
+
+  // 页面关闭/刷新时保存阅读位置
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveScrollPosition();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [saveScrollPosition]);
 
   // 内容加载完成后恢复滚动位置
   useEffect(() => {
