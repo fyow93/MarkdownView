@@ -1,4 +1,7 @@
-const path = require('path');
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // 应用配置
 const config = {
@@ -6,7 +9,7 @@ const config = {
   PROJECT_ROOT: process.env.MARKDOWN_PROJECT_ROOT || path.resolve(process.env.HOME || '~', 'project-wiki'),
   
   // 示例文件路径
-  EXAMPLE_FILE: path.resolve('./example.md'),
+  EXAMPLE_FILE: path.resolve(__dirname, 'example.md'),
   
   // 服务器配置
   SERVER: {
@@ -33,4 +36,4 @@ const config = {
   }
 };
 
-module.exports = config; 
+export default config; 

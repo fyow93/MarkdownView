@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import config from '../../../../config.js';
 
 // 从配置文件获取项目根目录
-const config = require('../../../../config');
 const PROJECT_ROOT = config.PROJECT_ROOT;
 
 interface FileNode {

@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import MarkdownViewer from '@/components/MarkdownViewer';
+import { DropdownFileTree } from '@/components/DropdownFileTree';
+import { Github } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<string>('');
@@ -29,19 +32,28 @@ export default function Home() {
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-semibold">Markdown Viewer</h1>
+            {/* 项目文档下拉菜单 */}
+            <DropdownFileTree
+              onFileSelect={handleFileSelect}
+              selectedFile={selectedFile}
+            />
           </div>
-          <div className="text-sm text-muted-foreground hidden sm:block">
-            使用{' '}
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="gap-2"
+          >
             <a
-              href="https://remarkjs.github.io/react-markdown/"
+              href="https://github.com/fyow93/MarkdownView"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline"
+              className="flex items-center gap-2"
             >
-              react-markdown
-            </a>{' '}
-            构建
-          </div>
+              <Github className="h-4 w-4" />
+              <span className="hidden sm:inline">GitHub</span>
+            </a>
+          </Button>
         </div>
       </header>
 

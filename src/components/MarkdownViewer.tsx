@@ -22,12 +22,7 @@ import {
   List,
   FileText,
   ChevronRight,
-  Hash,
-  FolderTree,
-  ChevronDown,
-  ChevronUp,
-  Minimize2,
-  Maximize2
+  Hash
 } from 'lucide-react';
 
 interface MarkdownViewerProps {
@@ -40,6 +35,8 @@ interface TocItem {
   text: string;
   level: number;
 }
+
+
 
 // Mermaid图表组件
 const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
@@ -131,7 +128,7 @@ const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
   );
 };
 
-// 左侧目录组件
+// 左侧目录组件 - 修复字体大小问题
 const LeftSideToc: React.FC<{ 
   toc: TocItem[], 
   activeId: string,
@@ -139,6 +136,18 @@ const LeftSideToc: React.FC<{
   isVisible: boolean
 }> = ({ toc, activeId, onItemClick, isVisible }) => {
   if (!isVisible || toc.length === 0) return null;
+
+  const getFontSizeClass = (level: number) => {
+    switch (level) {
+      case 1: return 'text-base font-semibold';
+      case 2: return 'text-sm font-medium';
+      case 3: return 'text-sm';
+      case 4: return 'text-xs font-medium';
+      case 5: return 'text-xs';
+      case 6: return 'text-xs';
+      default: return 'text-sm';
+    }
+  };
 
   return (
     <div className="w-80 flex-shrink-0 h-full">
@@ -160,12 +169,13 @@ const LeftSideToc: React.FC<{
                   key={item.id}
                   onClick={() => onItemClick(item.id)}
                   className={`
-                    w-full text-left p-3 rounded-lg text-sm transition-all duration-200
+                    w-full text-left p-3 rounded-lg transition-all duration-200
                     flex items-center gap-3 group hover:bg-primary/10
                     ${activeId === item.id 
                       ? 'bg-primary/15 text-primary border-l-4 border-primary shadow-sm' 
                       : 'text-muted-foreground hover:text-foreground'
                     }
+                    ${getFontSizeClass(item.level)}
                   `}
                   style={{ paddingLeft: `${item.level * 16 + 12}px` }}
                 >
@@ -184,117 +194,7 @@ const LeftSideToc: React.FC<{
   );
 };
 
-// 可缩放的文件树组件
-const CollapsibleFileTree: React.FC<{
-  onFileSelect: (filePath: string) => void;
-  selectedFile: string;
-  isMinimized: boolean;
-  onToggleMinimize: () => void;
-}> = ({ onFileSelect, selectedFile, isMinimized, onToggleMinimize }) => {
-  const [fileTree, setFileTree] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchFileTree = async () => {
-      try {
-        const response = await fetch('/api/filetree');
-        if (response.ok) {
-          const data = await response.json();
-          setFileTree(data);
-        }
-      } catch (error) {
-        console.error('获取文件树失败:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFileTree();
-  }, []);
-
-  const renderFileTree = (items: any[], level = 0) => {
-    return items.map((item) => (
-      <div key={item.path} style={{ paddingLeft: `${level * 16}px` }}>
-        {item.type === 'directory' ? (
-          <div className="py-1">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <FolderTree className="h-3 w-3" />
-              <span className="truncate">{item.name}</span>
-            </div>
-            {item.children && (
-              <div className="mt-1">
-                {renderFileTree(item.children, level + 1)}
-              </div>
-            )}
-          </div>
-        ) : (
-          <button
-            onClick={() => onFileSelect(item.path)}
-            className={`
-              w-full text-left py-1 px-2 rounded text-sm transition-colors
-              flex items-center gap-2 hover:bg-primary/10
-              ${selectedFile === item.path ? 'bg-primary/15 text-primary' : 'text-muted-foreground'}
-            `}
-          >
-            <FileText className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate">{item.name}</span>
-          </button>
-        )}
-      </div>
-    ));
-  };
-
-  if (isMinimized) {
-    return (
-      <Card className="absolute top-4 left-4 z-50 bg-background/95 backdrop-blur-sm border-primary/20 shadow-lg">
-        <CardContent className="p-3">
-          <Button
-            onClick={onToggleMinimize}
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-          >
-            <Maximize2 className="h-4 w-4" />
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="absolute top-4 left-4 z-50 w-80 max-h-96 bg-background/95 backdrop-blur-sm border-primary/20 shadow-lg">
-      <CardHeader className="pb-2 border-b">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <FolderTree className="h-4 w-4 text-primary" />
-            项目文档
-          </CardTitle>
-          <Button
-            onClick={onToggleMinimize}
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-          >
-            <Minimize2 className="h-3 w-3" />
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="h-80">
-          <div className="p-3">
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-              </div>
-            ) : (
-              renderFileTree(fileTree)
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
-  );
-};
 
 const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect }) => {
   const [content, setContent] = useState<string>('');
@@ -307,11 +207,20 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   const [toc, setToc] = useState<TocItem[]>([]);
   const [activeHeadingId, setActiveHeadingId] = useState<string>('');
   const [showToc, setShowToc] = useState(true);
-  const [isFileTreeMinimized, setIsFileTreeMinimized] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   // 改进的目录生成函数，正确处理HTML标签
+  // 统一的ID生成函数，确保目录和标题元素使用相同的ID生成逻辑
+  const generateId = (text: string): string => {
+    // 清理HTML标签和格式符号
+    const cleanText = text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim();
+    return cleanText
+      .toLowerCase()
+      .replace(/[^\w\s\u4e00-\u9fff]/g, '')
+      .replace(/\s+/g, '-');
+  };
+
   const generateToc = (markdown: string): TocItem[] => {
     const headingRegex = /^(#{1,6})\s+(.+)$/gm;
     const headings: TocItem[] = [];
@@ -321,44 +230,140 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       const level = match[1].length;
       let text = match[2].trim();
       
-      // 移除HTML标签，只保留纯文本
-      text = text.replace(/<[^>]*>/g, '');
-      
-      // 移除Markdown格式符号
-      text = text.replace(/[*_`~]/g, '');
-      
-      // 清理多余的空格
-      text = text.replace(/\s+/g, ' ').trim();
-      
       if (text) {
-        const id = text
-          .toLowerCase()
-          .replace(/[^\w\s\u4e00-\u9fff]/g, '')
-          .replace(/\s+/g, '-');
+        // 使用统一的ID生成函数
+        const id = generateId(text);
+        // 清理显示文本
+        const displayText = text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim();
         
-        headings.push({ id, text, level });
+        headings.push({ id, text: displayText, level });
       }
     }
 
     return headings;
   };
 
-  // 滚动到指定标题
+  // 改进的滚动到标题函数 - 修复滚动速度问题
   const scrollToHeading = (id: string) => {
     const element = document.getElementById(id);
     if (element && scrollAreaRef.current) {
       const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollElement) {
-        const elementTop = element.offsetTop;
-        const offset = 100;
+        const containerRect = scrollElement.getBoundingClientRect();
+        const elementRect = element.getBoundingClientRect();
+        const relativeTop = elementRect.top - containerRect.top + scrollElement.scrollTop;
+        const offset = 80; // 减少偏移量
+        
+        // 使用requestAnimationFrame实现更流畅的滚动
+        const targetScrollTop = Math.max(0, relativeTop - offset);
+        
+        // 立即滚动，不使用smooth behavior来避免慢速问题
         scrollElement.scrollTo({
-          top: elementTop - offset,
-          behavior: 'smooth'
+          top: targetScrollTop,
+          behavior: 'auto'
         });
+        
+        // 然后使用自定义动画实现平滑效果
+        const startScrollTop = scrollElement.scrollTop;
+        const distance = targetScrollTop - startScrollTop;
+        const duration = 300; // 300ms动画时间
+        const startTime = performance.now();
+        
+        const animateScroll = (currentTime: number) => {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          
+          // 使用easeOutCubic缓动函数
+          const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+          const currentScrollTop = startScrollTop + distance * easeOutCubic;
+          
+          scrollElement.scrollTo({
+            top: currentScrollTop,
+            behavior: 'auto'
+          });
+          
+          if (progress < 1) {
+            requestAnimationFrame(animateScroll);
+          }
+        };
+        
+        requestAnimationFrame(animateScroll);
         setActiveHeadingId(id);
       }
     }
   };
+
+  // 保存滚动位置
+  const saveScrollPosition = React.useCallback(() => {
+    if (!filePath || !scrollAreaRef.current) return;
+    
+    const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+    if (scrollElement) {
+      const scrollTop = scrollElement.scrollTop;
+      const scrollKey = `scroll-${filePath}`;
+      localStorage.setItem(scrollKey, scrollTop.toString());
+      console.log('💾 保存滚动位置:', filePath, scrollTop);
+    }
+  }, [filePath]);
+
+  // 恢复滚动位置
+  const restoreScrollPosition = React.useCallback(() => {
+    if (!filePath || !scrollAreaRef.current) return;
+    
+    const scrollKey = `scroll-${filePath}`;
+    const savedPosition = localStorage.getItem(scrollKey);
+    
+    if (savedPosition) {
+      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        setTimeout(() => {
+          scrollElement.scrollTo({
+            top: parseInt(savedPosition, 10),
+            behavior: 'auto'
+          });
+          console.log('📍 恢复滚动位置:', filePath, savedPosition);
+        }, 100);
+      }
+    }
+  }, [filePath]);
+
+  const loadContent = React.useCallback(async () => {
+    if (!filePath) {
+      setContent('');
+      setError(null);
+      setToc([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/file/${encodeURIComponent(filePath)}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setContent(data.content);
+      setLastModified(data.lastModified);
+      setLastUpdateTime(new Date().toLocaleString());
+      
+      // 生成目录
+      const newToc = generateToc(data.content);
+      setToc(newToc);
+      
+    } catch (err) {
+      console.error('Failed to load content:', err);
+      setError(err instanceof Error ? err.message : '加载文件失败');
+      setContent('');
+      setToc([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [filePath]);
 
   // 初始化mermaid配置
   useEffect(() => {
@@ -379,7 +384,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
           messageFontSize: 14,
           actorFontSize: 16
         },
-        gitgraph: {
+        gitGraph: {
           useMaxWidth: true
         }
       });
@@ -431,41 +436,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       clearInterval(interval);
       setIsConnected(false);
     };
-  }, [filePath, isRealTimeEnabled, lastModified]);
-
-  // 保存滚动位置
-  const saveScrollPosition = () => {
-    if (!filePath || !scrollAreaRef.current) return;
-    
-    const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-    if (scrollElement) {
-      const scrollTop = scrollElement.scrollTop;
-      const scrollKey = `scroll-${filePath}`;
-      localStorage.setItem(scrollKey, scrollTop.toString());
-      console.log('💾 保存滚动位置:', filePath, scrollTop);
-    }
-  };
-
-  // 恢复滚动位置
-  const restoreScrollPosition = () => {
-    if (!filePath || !scrollAreaRef.current) return;
-    
-    const scrollKey = `scroll-${filePath}`;
-    const savedPosition = localStorage.getItem(scrollKey);
-    
-    if (savedPosition) {
-      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollElement) {
-        setTimeout(() => {
-          scrollElement.scrollTo({
-            top: parseInt(savedPosition, 10),
-            behavior: 'auto'
-          });
-          console.log('📍 恢复滚动位置:', filePath, savedPosition);
-        }, 100);
-      }
-    }
-  };
+  }, [filePath, isRealTimeEnabled, lastModified, saveScrollPosition]);
 
   // 滚动事件处理（防抖）
   useEffect(() => {
@@ -489,7 +460,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       scrollElement.removeEventListener('scroll', handleScroll);
       clearTimeout(timeoutId);
     };
-  }, [filePath]);
+  }, [filePath, saveScrollPosition]);
 
   const clearCurrentScrollPosition = () => {
     if (!filePath) return;
@@ -499,88 +470,57 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     console.log('🗑️ 清除滚动位置:', filePath);
   };
 
-  const loadContent = async () => {
-    if (!filePath) {
-      setContent('');
-      setError(null);
-      setToc([]);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(`/api/file/${encodeURIComponent(filePath)}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setContent(data.content);
-      setLastModified(data.lastModified);
-      setLastUpdateTime(new Date().toLocaleString());
-      
-      // 生成目录
-      const newToc = generateToc(data.content);
-      setToc(newToc);
-      
-    } catch (err) {
-      console.error('Failed to load content:', err);
-      setError(err instanceof Error ? err.message : '加载文件失败');
-      setContent('');
-      setToc([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     loadContent();
-  }, [filePath]);
+  }, [loadContent]);
 
   // 内容加载完成后恢复滚动位置
   useEffect(() => {
     if (content && !loading) {
       restoreScrollPosition();
     }
-  }, [content, loading]);
+  }, [content, loading, restoreScrollPosition]);
 
   // 自定义标题组件，添加id属性
-  const HeadingComponent = ({ level, children, ...props }: any) => {
+  const HeadingComponent = ({ level, children, ...props }: { level: number; children?: React.ReactNode } & React.HTMLAttributes<HTMLHeadingElement>) => {
     const text = children?.toString() || '';
-    // 清理HTML标签和格式符号
-    const cleanText = text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim();
-    const id = cleanText
-      .toLowerCase()
-      .replace(/[^\w\s\u4e00-\u9fff]/g, '')
-      .replace(/\s+/g, '-');
+    // 使用统一的ID生成函数，确保与目录中的ID一致
+    const id = generateId(text);
 
-    const Tag = `h${level}` as keyof JSX.IntrinsicElements;
-    
-    return (
-      <Tag
-        id={id}
-        className={`
-          scroll-m-20 font-semibold tracking-tight group
-          ${level === 1 ? 'text-3xl lg:text-4xl mb-6 text-primary border-b pb-3' : ''}
-          ${level === 2 ? 'text-2xl lg:text-3xl mt-8 mb-4 text-primary/90' : ''}
-          ${level === 3 ? 'text-xl lg:text-2xl mt-6 mb-3 text-primary/80' : ''}
-          ${level === 4 ? 'text-lg lg:text-xl mt-4 mb-2 text-primary/70' : ''}
-          ${level === 5 ? 'text-base lg:text-lg mt-3 mb-2 text-primary/60' : ''}
-          ${level === 6 ? 'text-sm lg:text-base mt-2 mb-2 text-primary/50' : ''}
-        `}
-        {...props}
-      >
-        <span className="flex items-center gap-2">
-          {children}
-          <Hash className="h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity cursor-pointer" 
-                onClick={() => scrollToHeading(id)} />
-        </span>
-      </Tag>
+    const className = `
+      scroll-m-20 font-semibold tracking-tight group
+      ${level === 1 ? 'text-3xl lg:text-4xl mb-6 text-primary border-b pb-3' : ''}
+      ${level === 2 ? 'text-2xl lg:text-3xl mt-8 mb-4 text-primary/90' : ''}
+      ${level === 3 ? 'text-xl lg:text-2xl mt-6 mb-3 text-primary/80' : ''}
+      ${level === 4 ? 'text-lg lg:text-xl mt-4 mb-2 text-primary/70' : ''}
+      ${level === 5 ? 'text-base lg:text-lg mt-3 mb-2 text-primary/60' : ''}
+      ${level === 6 ? 'text-sm lg:text-base mt-2 mb-2 text-primary/50' : ''}
+    `;
+
+    const content = (
+      <span className="flex items-center gap-2">
+        {children}
+        <Hash className="h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity cursor-pointer" 
+              onClick={() => scrollToHeading(id)} />
+      </span>
     );
+    
+    switch (level) {
+      case 1:
+        return <h1 id={id} className={className} {...props}>{content}</h1>;
+      case 2:
+        return <h2 id={id} className={className} {...props}>{content}</h2>;
+      case 3:
+        return <h3 id={id} className={className} {...props}>{content}</h3>;
+      case 4:
+        return <h4 id={id} className={className} {...props}>{content}</h4>;
+      case 5:
+        return <h5 id={id} className={className} {...props}>{content}</h5>;
+      case 6:
+        return <h6 id={id} className={className} {...props}>{content}</h6>;
+      default:
+        return <h2 id={id} className={className} {...props}>{content}</h2>;
+    }
   };
 
   // 代码块组件
@@ -603,11 +543,11 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
         </CardHeader>
         <CardContent className="p-0">
           <SyntaxHighlighter
-            style={tomorrow}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            style={tomorrow as any}
             language={language}
             PreTag="div"
             className="!m-0 !rounded-none"
-            {...props}
           >
             {String(children).replace(/\n$/, '')}
           </SyntaxHighlighter>
@@ -630,14 +570,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   if (!filePath) {
     return (
       <div className="h-full flex relative">
-        {/* 可缩放的文件树 */}
-        <CollapsibleFileTree
-          onFileSelect={handleFileSelect}
-          selectedFile=""
-          isMinimized={isFileTreeMinimized}
-          onToggleMinimize={() => setIsFileTreeMinimized(!isFileTreeMinimized)}
-        />
-        
         {/* 左侧目录 */}
         <LeftSideToc 
           toc={toc} 
@@ -656,7 +588,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
                 </div>
                 <div>
                   <div className="text-xl font-semibold mb-2 text-primary">Markdown Viewer</div>
-                  <div className="text-sm text-muted-foreground">请从左上角选择一个Markdown文件来查看</div>
+                  <div className="text-sm text-muted-foreground">请从顶部导航栏选择一个Markdown文件来查看</div>
                 </div>
               </div>
             </CardContent>
@@ -669,13 +601,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   if (loading) {
     return (
       <div className="h-full flex relative">
-        <CollapsibleFileTree
-          onFileSelect={handleFileSelect}
-          selectedFile={filePath}
-          isMinimized={isFileTreeMinimized}
-          onToggleMinimize={() => setIsFileTreeMinimized(!isFileTreeMinimized)}
-        />
-        
         <LeftSideToc 
           toc={toc} 
           activeId={activeHeadingId}
@@ -705,13 +630,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   if (error) {
     return (
       <div className="h-full flex relative">
-        <CollapsibleFileTree
-          onFileSelect={handleFileSelect}
-          selectedFile={filePath}
-          isMinimized={isFileTreeMinimized}
-          onToggleMinimize={() => setIsFileTreeMinimized(!isFileTreeMinimized)}
-        />
-        
         <LeftSideToc 
           toc={toc} 
           activeId={activeHeadingId}
@@ -744,14 +662,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
 
   return (
     <div className="h-full flex relative">
-      {/* 可缩放的文件树 */}
-      <CollapsibleFileTree
-        onFileSelect={handleFileSelect}
-        selectedFile={filePath}
-        isMinimized={isFileTreeMinimized}
-        onToggleMinimize={() => setIsFileTreeMinimized(!isFileTreeMinimized)}
-      />
-      
       {/* 左侧目录 */}
       <LeftSideToc 
         toc={toc} 
