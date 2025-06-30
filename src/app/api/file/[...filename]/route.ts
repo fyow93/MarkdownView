@@ -13,9 +13,10 @@ function isValidPath(requestedPath: string): boolean {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { filename: string[] } }
+  { params }: { params: Promise<{ filename: string[] }> }
 ) {
-  const requestedFile = params.filename.join('/');
+  const resolvedParams = await params;
+  const requestedFile = resolvedParams.filename.join('/');
   
   if (!requestedFile) {
     return NextResponse.json({ error: '文件名不能为空' }, { status: 400 });

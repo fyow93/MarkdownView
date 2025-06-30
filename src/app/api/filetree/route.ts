@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
@@ -14,10 +14,10 @@ interface FileNode {
 }
 
 // 安全检查函数 - 防止目录遍历攻击
-function isValidPath(requestedPath: string): boolean {
-  const resolvedPath = path.resolve(PROJECT_ROOT, requestedPath);
-  return resolvedPath.startsWith(PROJECT_ROOT);
-}
+// function isValidPath(requestedPath: string): boolean {
+//   const resolvedPath = path.resolve(PROJECT_ROOT, requestedPath);
+//   return resolvedPath.startsWith(PROJECT_ROOT);
+// }
 
 // 递归获取目录结构
 function getDirectoryStructure(dirPath: string, relativePath: string = ''): FileNode[] {

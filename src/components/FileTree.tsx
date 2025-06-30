@@ -1,5 +1,10 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import './FileTree.css';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+// import { Button } from '@/components/ui/button';
+import { ChevronRight, ChevronDown, File, Folder, AlertCircle } from 'lucide-react';
 
 interface FileNode {
   name: string;
@@ -7,6 +12,7 @@ interface FileNode {
   type: 'file' | 'directory';
   children?: FileNode[];
   isExpanded?: boolean;
+  size?: number;
 }
 
 interface FileTreeProps {
@@ -25,7 +31,7 @@ const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedFile }) => {
         setLoading(true);
         setError(null);
         
-        const response = await fetch('http://localhost:3001/api/filetree');
+        const response = await fetch('/api/filetree');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -87,10 +93,14 @@ const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedFile }) => {
 
   const renderTree = (nodes: FileNode[], level: number = 0) => {
     return nodes.map(node => (
-      <div key={node.path} className="file-tree-node">
+      <div key={node.path} className="select-none">
         <div 
-          className={`file-tree-item ${node.type} ${selectedFile === node.path ? 'selected' : ''}`}
-          style={{ paddingLeft: `${level * 20 + 10}px` }}
+          className={`
+            flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer transition-colors
+            hover:bg-accent hover:text-accent-foreground
+            ${selectedFile === node.path ? 'bg-accent text-accent-foreground' : ''}
+          `}
+          style={{ paddingLeft: `${level * 16 + 8}px` }}
           onClick={() => {
             if (node.type === 'directory') {
               toggleDirectory(node.path);
@@ -99,18 +109,25 @@ const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedFile }) => {
             }
           }}
         >
-          {node.type === 'directory' && (
-            <span className={`expand-icon ${node.isExpanded ? 'expanded' : ''}`}>
-              ▶
-            </span>
+          {node.type === 'directory' ? (
+            <>
+              {node.isExpanded ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+              <Folder className="h-4 w-4 text-blue-500" />
+            </>
+          ) : (
+            <>
+              <div className="w-4" /> {/* Spacer for alignment */}
+              <File className="h-4 w-4 text-gray-500" />
+            </>
           )}
-          {node.type === 'file' && (
-            <span className="file-icon">📄</span>
-          )}
-          <span className="file-name">{node.name}</span>
+          <span className="text-sm truncate">{node.name}</span>
         </div>
         {node.type === 'directory' && node.isExpanded && node.children && (
-          <div className="file-tree-children">
+          <div>
             {renderTree(node.children, level + 1)}
           </div>
         )}
@@ -120,36 +137,45 @@ const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedFile }) => {
 
   if (loading) {
     return (
-      <div className="file-tree">
-        <div className="file-tree-header">
-          <h3>项目文档</h3>
-        </div>
-        <div className="file-tree-loading">
-          <div className="loading-spinner"></div>
-          <p>正在加载文件树...</p>
-        </div>
-      </div>
+      <Card className="h-full">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">项目文档</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-2 text-sm text-muted-foreground">正在加载文件树...</span>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="file-tree">
-      <div className="file-tree-header">
-        <h3>项目文档</h3>
-        {error && (
-          <div className="error-indicator" title={`API连接失败: ${error}`}>
-            ⚠️ 离线模式
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">项目文档</CardTitle>
+          {error && (
+            <div className="flex items-center gap-1 text-amber-600" title={`API连接失败: ${error}`}>
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-xs">离线模式</span>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ScrollArea className="h-[calc(100vh-8rem)]">
+          <div className="p-4 pt-0">
+            {tree.length > 0 ? renderTree(tree) : (
+              <div className="text-center py-8 text-muted-foreground">
+                没有找到Markdown文件
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      <div className="file-tree-content">
-        {tree.length > 0 ? renderTree(tree) : (
-          <div className="no-files-message">
-            没有找到Markdown文件
-          </div>
-        )}
-      </div>
-    </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 };
 
