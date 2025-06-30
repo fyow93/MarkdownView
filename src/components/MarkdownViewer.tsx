@@ -485,7 +485,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
           children: [],
           isCollapsed: false
         });
-        console.log(`�� 生成目录项 H${level}:`, {
+        console.log(`🏷️ 生成目录项 H${level}:`, {
           level,
           originalText: text,
           displayText: displayText,
@@ -538,30 +538,42 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     let element = document.getElementById(id);
     console.log('🔍 查找DOM元素:', element ? '找到' : '未找到', element);
     
-    // 特别针对一级标题的调试
+    // 查找所有级别的标题进行调试
     if (!element) {
-      console.log('❌ 未找到元素，尝试其他方法查找...');
-      const allH1 = document.querySelectorAll('h1');
-      console.log('📋 页面上所有H1标题:', Array.from(allH1).map(h => ({ id: h.id, text: h.textContent })));
-      console.log('🔍 详细H1信息:', Array.from(allH1).map((h, index) => ({
+      console.log('❌ 未找到元素，尝试查找所有级别的标题...');
+      
+      // 查找所有标题元素
+      const allHeadings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+      console.log('📋 页面上所有标题:', Array.from(allHeadings).map(h => ({ 
+        tagName: h.tagName, 
+        id: h.id, 
+        text: h.textContent?.trim() 
+      })));
+      
+      console.log('🔍 详细标题信息:', Array.from(allHeadings).map((h, index) => ({
         index: index + 1,
+        tagName: h.tagName,
         id: h.id,
         text: h.textContent?.trim(),
-        outerHTML: h.outerHTML.substring(0, 200) + '...'
+        outerHTML: h.outerHTML.substring(0, 150) + '...'
       })));
+      
       console.log('🎯 要查找的ID:', id);
-      console.log('📊 ID匹配检查:', Array.from(allH1).map(h => ({
+      console.log('📊 ID匹配检查:', Array.from(allHeadings).map(h => ({
+        tagName: h.tagName,
         pageId: h.id,
         targetId: id,
         match: h.id === id,
         textMatch: h.textContent?.trim()
       })));
       
-      // 尝试通过文本内容查找
-      const foundByText = Array.from(allH1).find(h => h.id === id);
-      if (foundByText) {
-        console.log('✅ 通过文本匹配找到H1:', foundByText);
-        element = foundByText;
+      // 尝试在所有标题中查找匹配的ID
+      const foundById = Array.from(allHeadings).find(h => h.id === id);
+      if (foundById) {
+        console.log('✅ 找到匹配的标题:', foundById.tagName, foundById.id, foundById.textContent);
+        element = foundById;
+      } else {
+        console.log('❌ 在所有标题中都没有找到匹配的ID');
       }
     }
     
