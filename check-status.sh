@@ -2,30 +2,42 @@
 
 echo "🔍 检查 MarkdownView 应用状态..."
 
+# 检查配置
+echo "⚙️ 当前配置:"
+node -e "
+const config = require('./config');
+console.log('  项目根路径:', config.PROJECT_ROOT);
+console.log('  服务器端口:', config.SERVER.PORT);
+console.log('  服务器主机:', config.SERVER.HOST);
+console.log('  轮询间隔:', config.WATCH.POLL_INTERVAL + 'ms');
+" 2>/dev/null || echo "  ❌ 配置文件加载失败"
+echo ""
+
 # 检查服务器是否运行
-if curl -s http://localhost:3000 > /dev/null; then
-    echo "✅ 服务器运行正常 (端口 3000)"
+PORT=$(node -e "console.log(require('./config').SERVER.PORT)" 2>/dev/null || echo "3000")
+if curl -s http://localhost:$PORT > /dev/null; then
+    echo "✅ 服务器运行正常 (端口 $PORT)"
 else
     echo "❌ 服务器未运行或无法访问"
     exit 1
 fi
 
 # 检查文件树API
-if curl -s http://localhost:3000/api/filetree | jq . > /dev/null 2>&1; then
+if curl -s http://localhost:$PORT/api/filetree | jq . > /dev/null 2>&1; then
     echo "✅ 文件树 API 正常"
 else
     echo "❌ 文件树 API 异常"
 fi
 
 # 检查文件内容API
-if curl -s "http://localhost:3000/api/file/README.md" | jq . > /dev/null 2>&1; then
+if curl -s "http://localhost:$PORT/api/file/README.md" | jq . > /dev/null 2>&1; then
     echo "✅ 文件内容 API 正常"
 else
     echo "❌ 文件内容 API 异常"
 fi
 
 # 检查页面标题
-TITLE=$(curl -s http://localhost:3000 | grep -o "Projects Wiki Viewer" | head -1)
+TITLE=$(curl -s http://localhost:$PORT | grep -o "Projects Wiki Viewer" | head -1)
 if [ "$TITLE" = "Projects Wiki Viewer" ]; then
     echo "✅ 页面标题正确"
 else
@@ -33,7 +45,7 @@ else
 fi
 
 # 检查样式加载
-STYLES=$(curl -s http://localhost:3000 | grep -o "class=\"[^\"]*\"" | grep -E "bg-|border|rounded|flex|text-" | wc -l)
+STYLES=$(curl -s http://localhost:$PORT | grep -o "class=\"[^\"]*\"" | grep -E "bg-|border|rounded|flex|text-" | wc -l)
 if [ "$STYLES" -gt 20 ]; then
     echo "✅ 样式类正常加载 ($STYLES 个样式类)"
 else

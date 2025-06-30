@@ -5,13 +5,14 @@ const { Server } = require('socket.io');
 const chokidar = require('chokidar');
 const fs = require('fs');
 const path = require('path');
+const config = require('./config');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
-const port = process.env.PORT || 3000;
+const hostname = config.SERVER.HOST;
+const port = config.SERVER.PORT;
 
-// 项目根目录
-const PROJECT_ROOT = path.resolve('/home/xtalpi/shuaikang.lin/cursor-wks/projects-wiki');
+// 从配置文件获取项目根目录
+const PROJECT_ROOT = config.PROJECT_ROOT;
 
 // 当在生产环境下，next() 可能是 Promise
 const app = next({ 

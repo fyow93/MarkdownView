@@ -5,6 +5,18 @@
 
 echo "🚀 启动 Projects Wiki Viewer (Next.js版本)..."
 
+# 加载环境变量（如果存在.env文件）
+if [ -f ".env" ]; then
+    echo "📋 加载环境变量..."
+    export $(cat .env | grep -v '^#' | xargs)
+fi
+
+# 显示当前配置
+echo "📋 当前配置:"
+echo "  项目路径: ${MARKDOWN_PROJECT_ROOT:-~/project-wiki}"
+echo "  端口: ${PORT:-3000}"
+echo "  主机: ${HOST:-localhost}"
+
 # 检查Node.js版本
 echo "📋 检查环境..."
 node --version

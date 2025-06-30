@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-// 项目根目录
-const PROJECT_ROOT = path.resolve('/home/xtalpi/shuaikang.lin/cursor-wks/projects-wiki');
+// 从配置文件获取项目根目录
+const config = require('../../../../config');
+const PROJECT_ROOT = config.PROJECT_ROOT;
 
 interface FileNode {
   name: string;

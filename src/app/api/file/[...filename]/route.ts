@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-// 项目根目录
-const PROJECT_ROOT = path.resolve('/home/xtalpi/shuaikang.lin/cursor-wks/projects-wiki');
+// 从配置文件获取项目根目录
+const config = require('../../../../../config');
+const PROJECT_ROOT = config.PROJECT_ROOT;
 
 // 安全检查函数 - 防止目录遍历攻击
 function isValidPath(requestedPath: string): boolean {

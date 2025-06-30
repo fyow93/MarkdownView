@@ -2,10 +2,6 @@
 
 这是一个使用 Next.js 和 shadcn/ui 重构的 Markdown 文档查看器项目。
 
-## 🎉 重构完成！
-
-项目已成功从 React (Create React App) + Express 架构重构为 Next.js 全栈应用。
-
 ## 🚀 主要特性
 
 - **现代化UI**: 使用 shadcn/ui 组件库构建的美观界面
@@ -52,9 +48,10 @@ MarkdownView/
 │           ├── resizable.tsx
 │           ├── scroll-area.tsx
 │           └── separator.tsx
-├── backup-original/                # 原项目备份
+├── config.js                       # 应用配置文件
 ├── components.json                 # shadcn/ui 配置
 ├── start.sh                        # 启动脚本
+├── check-status.sh                 # 状态检查脚本
 └── package.json
 ```
 
@@ -89,13 +86,37 @@ npm run build && npm start
 
 打开浏览器访问 [http://localhost:3000](http://localhost:3000)
 
-### 3. 配置项目根目录（如果需要）
+### 3. 配置项目根目录
 
-如果需要修改文档根目录，编辑以下文件中的 `PROJECT_ROOT` 变量：
-- `src/app/api/filetree/route.ts`
-- `src/app/api/file/[...filename]/route.ts`
+应用支持通过多种方式灵活配置项目路径：
 
-当前配置指向：`/home/xtalpi/shuaikang.lin/cursor-wks/projects-wiki`
+#### 方法1：环境变量配置（推荐）
+```bash
+# 设置项目根路径
+export MARKDOWN_PROJECT_ROOT=/path/to/your/markdown/project
+
+# 可选：设置其他配置
+export PORT=3000
+export HOST=localhost
+export POLL_INTERVAL=3000
+
+# 然后启动应用
+./start.sh
+```
+
+#### 方法2：创建 .env 文件
+```bash
+# 复制环境变量示例文件
+cp env.example .env
+
+# 编辑 .env 文件设置你的项目路径
+nano .env
+```
+
+#### 方法3：修改配置文件
+直接编辑 `config.js` 文件中的默认路径。
+
+**默认路径**：如果未设置环境变量，应用将使用 `~/project-wiki`
 
 ## 📱 功能说明
 
@@ -150,24 +171,6 @@ npx shadcn@latest add [component-name]
 ### 添加新的 Markdown 插件
 
 在 `src/components/MarkdownViewer.tsx` 中的 `remarkPlugins` 或 `rehypePlugins` 数组中添加新插件。
-
-## 📝 重构说明
-
-### 已完成的重构工作
-
-1. **技术栈升级**: 从 Create React App 升级到 Next.js
-2. **UI组件库**: 使用 shadcn/ui 替代自定义 CSS
-3. **API架构**: 使用 Next.js API Routes 替代 Express 服务器
-4. **响应式设计**: 更好的移动端支持
-5. **类型安全**: 完整的 TypeScript 支持
-6. **现代化构建**: 使用 Next.js 的优化构建系统
-
-### 原项目备份
-
-原项目文件已备份到 `backup-original/` 目录中，包括：
-- 原 React 应用代码
-- Express 服务器代码
-- 原配置文件
 
 ## 🤝 贡献
 
