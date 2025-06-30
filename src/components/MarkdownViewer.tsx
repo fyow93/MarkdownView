@@ -22,11 +22,17 @@ import {
   List,
   FileText,
   ChevronRight,
-  Hash
+  Hash,
+  FolderTree,
+  ChevronDown,
+  ChevronUp,
+  Minimize2,
+  Maximize2
 } from 'lucide-react';
 
 interface MarkdownViewerProps {
   filePath?: string;
+  onFileSelect?: (filePath: string) => void;
 }
 
 interface TocItem {
@@ -125,53 +131,172 @@ const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
   );
 };
 
-// 目录组件
-const TableOfContents: React.FC<{ 
+// 左侧目录组件
+const LeftSideToc: React.FC<{ 
   toc: TocItem[], 
   activeId: string,
-  onItemClick: (id: string) => void 
-}> = ({ toc, activeId, onItemClick }) => {
-  if (toc.length === 0) return null;
+  onItemClick: (id: string) => void,
+  isVisible: boolean
+}> = ({ toc, activeId, onItemClick, isVisible }) => {
+  if (!isVisible || toc.length === 0) return null;
 
   return (
-    <Card className="sticky top-4 bg-gradient-to-br from-background to-muted/30 border-primary/20">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <List className="h-4 w-4 text-primary" />
-          目录
-          <Badge variant="secondary" className="text-xs">
-            {toc.length}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-1">
-        {toc.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onItemClick(item.id)}
-            className={`
-              w-full text-left p-2 rounded-md text-sm transition-all duration-200
-              flex items-center gap-2 group hover:bg-primary/10
-              ${activeId === item.id 
-                ? 'bg-primary/15 text-primary border-l-2 border-primary' 
-                : 'text-muted-foreground hover:text-foreground'
-              }
-            `}
-            style={{ paddingLeft: `${item.level * 12 + 8}px` }}
-          >
-            <Hash className="h-3 w-3 flex-shrink-0 opacity-50 group-hover:opacity-100" />
-            <span className="truncate">{item.text}</span>
-            {activeId === item.id && (
-              <ChevronRight className="h-3 w-3 ml-auto text-primary" />
+    <div className="w-80 flex-shrink-0 h-full">
+      <Card className="h-full bg-gradient-to-br from-background to-muted/30 border-primary/20">
+        <CardHeader className="pb-3 border-b bg-gradient-to-r from-primary/5 to-primary/10">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <List className="h-4 w-4 text-primary" />
+            文档目录
+            <Badge variant="secondary" className="text-xs">
+              {toc.length}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <ScrollArea className="h-[calc(100vh-8rem)]">
+            <div className="p-4 space-y-1">
+              {toc.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => onItemClick(item.id)}
+                  className={`
+                    w-full text-left p-3 rounded-lg text-sm transition-all duration-200
+                    flex items-center gap-3 group hover:bg-primary/10
+                    ${activeId === item.id 
+                      ? 'bg-primary/15 text-primary border-l-4 border-primary shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
+                    }
+                  `}
+                  style={{ paddingLeft: `${item.level * 16 + 12}px` }}
+                >
+                  <Hash className="h-3 w-3 flex-shrink-0 opacity-50 group-hover:opacity-100" />
+                  <span className="truncate flex-1 text-left">{item.text}</span>
+                  {activeId === item.id && (
+                    <ChevronRight className="h-3 w-3 text-primary flex-shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// 可缩放的文件树组件
+const CollapsibleFileTree: React.FC<{
+  onFileSelect: (filePath: string) => void;
+  selectedFile: string;
+  isMinimized: boolean;
+  onToggleMinimize: () => void;
+}> = ({ onFileSelect, selectedFile, isMinimized, onToggleMinimize }) => {
+  const [fileTree, setFileTree] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFileTree = async () => {
+      try {
+        const response = await fetch('/api/filetree');
+        if (response.ok) {
+          const data = await response.json();
+          setFileTree(data);
+        }
+      } catch (error) {
+        console.error('获取文件树失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFileTree();
+  }, []);
+
+  const renderFileTree = (items: any[], level = 0) => {
+    return items.map((item) => (
+      <div key={item.path} style={{ paddingLeft: `${level * 16}px` }}>
+        {item.type === 'directory' ? (
+          <div className="py-1">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <FolderTree className="h-3 w-3" />
+              <span className="truncate">{item.name}</span>
+            </div>
+            {item.children && (
+              <div className="mt-1">
+                {renderFileTree(item.children, level + 1)}
+              </div>
             )}
+          </div>
+        ) : (
+          <button
+            onClick={() => onFileSelect(item.path)}
+            className={`
+              w-full text-left py-1 px-2 rounded text-sm transition-colors
+              flex items-center gap-2 hover:bg-primary/10
+              ${selectedFile === item.path ? 'bg-primary/15 text-primary' : 'text-muted-foreground'}
+            `}
+          >
+            <FileText className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">{item.name}</span>
           </button>
-        ))}
+        )}
+      </div>
+    ));
+  };
+
+  if (isMinimized) {
+    return (
+      <Card className="absolute top-4 left-4 z-50 bg-background/95 backdrop-blur-sm border-primary/20 shadow-lg">
+        <CardContent className="p-3">
+          <Button
+            onClick={onToggleMinimize}
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="absolute top-4 left-4 z-50 w-80 max-h-96 bg-background/95 backdrop-blur-sm border-primary/20 shadow-lg">
+      <CardHeader className="pb-2 border-b">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <FolderTree className="h-4 w-4 text-primary" />
+            项目文档
+          </CardTitle>
+          <Button
+            onClick={onToggleMinimize}
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0"
+          >
+            <Minimize2 className="h-3 w-3" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ScrollArea className="h-80">
+          <div className="p-3">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+              </div>
+            ) : (
+              renderFileTree(fileTree)
+            )}
+          </div>
+        </ScrollArea>
       </CardContent>
     </Card>
   );
 };
 
-const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath }) => {
+const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect }) => {
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -182,10 +307,11 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath }) => {
   const [toc, setToc] = useState<TocItem[]>([]);
   const [activeHeadingId, setActiveHeadingId] = useState<string>('');
   const [showToc, setShowToc] = useState(true);
+  const [isFileTreeMinimized, setIsFileTreeMinimized] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // 生成目录
+  // 改进的目录生成函数，正确处理HTML标签
   const generateToc = (markdown: string): TocItem[] => {
     const headingRegex = /^(#{1,6})\s+(.+)$/gm;
     const headings: TocItem[] = [];
@@ -193,13 +319,25 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath }) => {
 
     while ((match = headingRegex.exec(markdown)) !== null) {
       const level = match[1].length;
-      const text = match[2].trim();
-      const id = text
-        .toLowerCase()
-        .replace(/[^\w\s\u4e00-\u9fff]/g, '')
-        .replace(/\s+/g, '-');
+      let text = match[2].trim();
       
-      headings.push({ id, text, level });
+      // 移除HTML标签，只保留纯文本
+      text = text.replace(/<[^>]*>/g, '');
+      
+      // 移除Markdown格式符号
+      text = text.replace(/[*_`~]/g, '');
+      
+      // 清理多余的空格
+      text = text.replace(/\s+/g, ' ').trim();
+      
+      if (text) {
+        const id = text
+          .toLowerCase()
+          .replace(/[^\w\s\u4e00-\u9fff]/g, '')
+          .replace(/\s+/g, '-');
+        
+        headings.push({ id, text, level });
+      }
     }
 
     return headings;
@@ -212,7 +350,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath }) => {
       const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollElement) {
         const elementTop = element.offsetTop;
-        const offset = 100; // 顶部偏移量
+        const offset = 100;
         scrollElement.scrollTo({
           top: elementTop - offset,
           behavior: 'smooth'
@@ -413,7 +551,9 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath }) => {
   // 自定义标题组件，添加id属性
   const HeadingComponent = ({ level, children, ...props }: any) => {
     const text = children?.toString() || '';
-    const id = text
+    // 清理HTML标签和格式符号
+    const cleanText = text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim();
+    const id = cleanText
       .toLowerCase()
       .replace(/[^\w\s\u4e00-\u9fff]/g, '')
       .replace(/\s+/g, '-');
@@ -480,68 +620,148 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath }) => {
     );
   };
 
+  // 处理文件选择
+  const handleFileSelect = (selectedFilePath: string) => {
+    if (onFileSelect) {
+      onFileSelect(selectedFilePath);
+    }
+  };
+
   if (!filePath) {
     return (
-      <Card className="h-full bg-gradient-to-br from-background to-muted/30">
-        <CardContent className="flex items-center justify-center h-full">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
-              <FileText className="h-8 w-8 text-primary" />
-            </div>
-            <div>
-              <div className="text-xl font-semibold mb-2 text-primary">Markdown Viewer</div>
-              <div className="text-sm text-muted-foreground">请从左侧选择一个Markdown文件来查看</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="h-full flex relative">
+        {/* 可缩放的文件树 */}
+        <CollapsibleFileTree
+          onFileSelect={handleFileSelect}
+          selectedFile=""
+          isMinimized={isFileTreeMinimized}
+          onToggleMinimize={() => setIsFileTreeMinimized(!isFileTreeMinimized)}
+        />
+        
+        {/* 左侧目录 */}
+        <LeftSideToc 
+          toc={toc} 
+          activeId={activeHeadingId}
+          onItemClick={scrollToHeading}
+          isVisible={showToc}
+        />
+        
+        {/* 主内容区域 */}
+        <div className="flex-1">
+          <Card className="h-full bg-gradient-to-br from-background to-muted/30">
+            <CardContent className="flex items-center justify-center h-full">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                  <FileText className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <div className="text-xl font-semibold mb-2 text-primary">Markdown Viewer</div>
+                  <div className="text-sm text-muted-foreground">请从左上角选择一个Markdown文件来查看</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
   }
 
   if (loading) {
     return (
-      <Card className="h-full bg-gradient-to-br from-background to-muted/30">
-        <CardContent className="flex items-center justify-center h-full">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
-            </div>
-            <div>
-              <div className="text-lg font-medium mb-2">正在加载文件...</div>
-              <div className="text-sm text-muted-foreground">{filePath}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="h-full flex relative">
+        <CollapsibleFileTree
+          onFileSelect={handleFileSelect}
+          selectedFile={filePath}
+          isMinimized={isFileTreeMinimized}
+          onToggleMinimize={() => setIsFileTreeMinimized(!isFileTreeMinimized)}
+        />
+        
+        <LeftSideToc 
+          toc={toc} 
+          activeId={activeHeadingId}
+          onItemClick={scrollToHeading}
+          isVisible={showToc}
+        />
+        
+        <div className="flex-1">
+          <Card className="h-full bg-gradient-to-br from-background to-muted/30">
+            <CardContent className="flex items-center justify-center h-full">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+                </div>
+                <div>
+                  <div className="text-lg font-medium mb-2">正在加载文件...</div>
+                  <div className="text-sm text-muted-foreground">{filePath}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="h-full border-destructive/50 bg-destructive/5">
-        <CardContent className="flex items-center justify-center h-full">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
-              <AlertCircle className="h-8 w-8 text-destructive" />
-            </div>
-            <div>
-              <div className="text-lg font-medium mb-2 text-destructive">加载失败</div>
-              <div className="text-sm text-muted-foreground mb-4">{error}</div>
-              <Button onClick={loadContent} variant="outline" className="gap-2">
-                <RefreshCw className="h-4 w-4" />
-                重试
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="h-full flex relative">
+        <CollapsibleFileTree
+          onFileSelect={handleFileSelect}
+          selectedFile={filePath}
+          isMinimized={isFileTreeMinimized}
+          onToggleMinimize={() => setIsFileTreeMinimized(!isFileTreeMinimized)}
+        />
+        
+        <LeftSideToc 
+          toc={toc} 
+          activeId={activeHeadingId}
+          onItemClick={scrollToHeading}
+          isVisible={showToc}
+        />
+        
+        <div className="flex-1">
+          <Card className="h-full border-destructive/50 bg-destructive/5">
+            <CardContent className="flex items-center justify-center h-full">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
+                  <AlertCircle className="h-8 w-8 text-destructive" />
+                </div>
+                <div>
+                  <div className="text-lg font-medium mb-2 text-destructive">加载失败</div>
+                  <div className="text-sm text-muted-foreground mb-4">{error}</div>
+                  <Button onClick={loadContent} variant="outline" className="gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    重试
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="h-full flex gap-4">
+    <div className="h-full flex relative">
+      {/* 可缩放的文件树 */}
+      <CollapsibleFileTree
+        onFileSelect={handleFileSelect}
+        selectedFile={filePath}
+        isMinimized={isFileTreeMinimized}
+        onToggleMinimize={() => setIsFileTreeMinimized(!isFileTreeMinimized)}
+      />
+      
+      {/* 左侧目录 */}
+      <LeftSideToc 
+        toc={toc} 
+        activeId={activeHeadingId}
+        onItemClick={scrollToHeading}
+        isVisible={showToc}
+      />
+      
       {/* 主内容区域 */}
-      <div className={`${showToc && toc.length > 0 ? 'flex-1' : 'w-full'}`}>
+      <div className="flex-1">
         <Card className="h-full bg-gradient-to-br from-background to-muted/20">
           <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10">
             <div className="flex items-center justify-between">
@@ -650,17 +870,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath }) => {
           </CardContent>
         </Card>
       </div>
-
-      {/* 目录侧边栏 */}
-      {showToc && toc.length > 0 && (
-        <div className="w-80 flex-shrink-0">
-          <TableOfContents 
-            toc={toc} 
-            activeId={activeHeadingId}
-            onItemClick={scrollToHeading}
-          />
-        </div>
-      )}
     </div>
   );
 };
