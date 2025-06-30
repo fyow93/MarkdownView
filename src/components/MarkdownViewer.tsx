@@ -22,6 +22,7 @@ import {
   List,
   FileText,
   ChevronRight,
+  ChevronDown,
   Hash
 } from 'lucide-react';
 
@@ -34,6 +35,8 @@ interface TocItem {
   id: string;
   text: string;
   level: number;
+  children?: TocItem[];
+  isCollapsed?: boolean;
 }
 
 
@@ -128,13 +131,23 @@ const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
   );
 };
 
-// 左侧目录组件 - 修复字体大小问题
+// 左侧目录组件 - 支持折叠功能
 const LeftSideToc: React.FC<{ 
   toc: TocItem[], 
   activeId: string,
   onItemClick: (id: string) => void,
   isVisible: boolean
 }> = ({ toc, activeId, onItemClick, isVisible }) => {
+  const [collapsedItems, setCollapsedItems] = useState<Set<string>>(() => {
+    // 从 localStorage 恢复折叠状态
+    try {
+      const saved = localStorage.getItem('toc-collapsed-items');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
   if (!isVisible || toc.length === 0) return null;
 
   const getFontSizeClass = (level: number) => {
@@ -149,43 +162,202 @@ const LeftSideToc: React.FC<{
     }
   };
 
+  const toggleCollapse = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCollapsedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      // 保存到 localStorage
+      try {
+        localStorage.setItem('toc-collapsed-items', JSON.stringify(Array.from(newSet)));
+      } catch (error) {
+        console.warn('Failed to save TOC collapse state:', error);
+      }
+      return newSet;
+    });
+  };
+
+  const countTotalItems = (items: TocItem[]): number => {
+    return items.reduce((count, item) => {
+      return count + 1 + (item.children ? countTotalItems(item.children) : 0);
+    }, 0);
+  };
+
+  const getAllItemIds = (items: TocItem[]): string[] => {
+    const ids: string[] = [];
+    const traverse = (items: TocItem[]) => {
+      items.forEach(item => {
+        if (item.children && item.children.length > 0) {
+          ids.push(item.id);
+          traverse(item.children);
+        }
+      });
+    };
+    traverse(items);
+    return ids;
+  };
+
+  const expandAll = () => {
+    setCollapsedItems(new Set());
+    try {
+      localStorage.setItem('toc-collapsed-items', JSON.stringify([]));
+    } catch (error) {
+      console.warn('Failed to save TOC collapse state:', error);
+    }
+  };
+
+  const collapseAll = () => {
+    const allIds = getAllItemIds(toc);
+    setCollapsedItems(new Set(allIds));
+    try {
+      localStorage.setItem('toc-collapsed-items', JSON.stringify(allIds));
+    } catch (error) {
+      console.warn('Failed to save TOC collapse state:', error);
+    }
+  };
+
+  // 找到目标标题的路径并展开
+  const expandToItem = (targetId: string, items: TocItem[], path: string[] = []): boolean => {
+    for (const item of items) {
+      const currentPath = [...path, item.id];
+      
+      if (item.id === targetId) {
+        // 找到目标，展开路径上的所有父级
+        setCollapsedItems(prev => {
+          const newSet = new Set(prev);
+          path.forEach(id => newSet.delete(id));
+          return newSet;
+        });
+        return true;
+      }
+      
+      if (item.children && item.children.length > 0) {
+        if (expandToItem(targetId, item.children, currentPath)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const handleItemClick = (id: string) => {
+    expandToItem(id, toc);
+    onItemClick(id);
+  };
+
+  const renderTocItem = (item: TocItem, depth: number = 0): React.ReactNode => {
+    const hasChildren = item.children && item.children.length > 0;
+    const isCollapsed = collapsedItems.has(item.id);
+    const isActive = activeId === item.id;
+
+    return (
+      <div key={item.id} className="space-y-1">
+        <div
+          className={`
+            w-full text-left p-2.5 rounded-lg transition-all duration-200
+            flex items-center gap-2 group hover:bg-primary/10
+            ${isActive 
+              ? 'bg-primary/15 text-primary border-l-4 border-primary shadow-sm' 
+              : 'text-muted-foreground hover:text-foreground'
+            }
+            ${getFontSizeClass(item.level)}
+          `}
+          style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        >
+          {hasChildren ? (
+            <button
+              onClick={(e) => toggleCollapse(item.id, e)}
+              className={`
+                flex-shrink-0 p-1 rounded-sm hover:bg-primary/20 transition-all duration-200
+                ${isCollapsed ? 'rotate-0' : 'rotate-90'}
+              `}
+              title={isCollapsed ? '展开子目录' : '折叠子目录'}
+            >
+              <ChevronRight className="h-3 w-3 transition-transform duration-200" />
+            </button>
+          ) : (
+            <div className="w-5 flex justify-center">
+              <Hash className="h-3 w-3 flex-shrink-0 opacity-50 group-hover:opacity-100" />
+            </div>
+          )}
+          
+          <button
+            onClick={() => handleItemClick(item.id)}
+            className="flex-1 text-left truncate hover:text-foreground transition-colors"
+            title={`跳转到: ${item.text}`}
+          >
+            {item.text}
+          </button>
+          
+          {hasChildren && (
+            <Badge variant="outline" className="text-xs px-1.5 py-0.5 h-5">
+              {item.children!.length}
+            </Badge>
+          )}
+          
+          {isActive && (
+            <ChevronRight className="h-3 w-3 text-primary flex-shrink-0" />
+          )}
+        </div>
+        
+        {hasChildren && (
+          <div 
+            className={`
+              transition-all duration-300 ease-in-out overflow-hidden
+              ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'}
+            `}
+          >
+            <div className="space-y-1 pt-1">
+              {item.children!.map(child => renderTocItem(child, depth + 1))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="w-80 flex-shrink-0 h-full">
       <Card className="h-full bg-gradient-to-br from-background to-muted/30 border-primary/20">
         <CardHeader className="pb-3 border-b bg-gradient-to-r from-primary/5 to-primary/10">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <List className="h-4 w-4 text-primary" />
-            文档目录
-            <Badge variant="secondary" className="text-xs">
-              {toc.length}
-            </Badge>
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <List className="h-4 w-4 text-primary" />
+              文档目录
+              <Badge variant="secondary" className="text-xs">
+                {countTotalItems(toc)}
+              </Badge>
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              <Button
+                onClick={expandAll}
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                title="展开所有"
+              >
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+              <Button
+                onClick={collapseAll}
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                title="折叠所有"
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <ScrollArea className="h-[calc(100vh-8rem)]">
             <div className="p-4 space-y-1">
-              {toc.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => onItemClick(item.id)}
-                  className={`
-                    w-full text-left p-3 rounded-lg transition-all duration-200
-                    flex items-center gap-3 group hover:bg-primary/10
-                    ${activeId === item.id 
-                      ? 'bg-primary/15 text-primary border-l-4 border-primary shadow-sm' 
-                      : 'text-muted-foreground hover:text-foreground'
-                    }
-                    ${getFontSizeClass(item.level)}
-                  `}
-                  style={{ paddingLeft: `${item.level * 16 + 12}px` }}
-                >
-                  <Hash className="h-3 w-3 flex-shrink-0 opacity-50 group-hover:opacity-100" />
-                  <span className="truncate flex-1 text-left">{item.text}</span>
-                  {activeId === item.id && (
-                    <ChevronRight className="h-3 w-3 text-primary flex-shrink-0" />
-                  )}
-                </button>
-              ))}
+              {toc.map(item => renderTocItem(item))}
             </div>
           </ScrollArea>
         </CardContent>
@@ -225,9 +397,10 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
 
   const generateToc = (markdown: string): TocItem[] => {
     const headingRegex = /^(#{1,6})\s+(.+)$/gm;
-    const headings: TocItem[] = [];
+    const flatHeadings: TocItem[] = [];
     let match;
 
+    // 首先生成扁平的标题列表
     while ((match = headingRegex.exec(markdown)) !== null) {
       const level = match[1].length;
       let text = match[2].trim();
@@ -238,11 +411,44 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
         // 清理显示文本
         const displayText = text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim();
         
-        headings.push({ id, text: displayText, level });
+        flatHeadings.push({ 
+          id, 
+          text: displayText, 
+          level,
+          children: [],
+          isCollapsed: false
+        });
       }
     }
 
-    return headings;
+    // 构建层级结构
+    const buildHierarchy = (headings: TocItem[]): TocItem[] => {
+      const result: TocItem[] = [];
+      const stack: TocItem[] = [];
+
+      for (const heading of headings) {
+        // 找到合适的父级
+        while (stack.length > 0 && stack[stack.length - 1].level >= heading.level) {
+          stack.pop();
+        }
+
+        if (stack.length === 0) {
+          // 顶级标题
+          result.push(heading);
+        } else {
+          // 子级标题
+          const parent = stack[stack.length - 1];
+          if (!parent.children) parent.children = [];
+          parent.children.push(heading);
+        }
+
+        stack.push(heading);
+      }
+
+      return result;
+    };
+
+    return buildHierarchy(flatHeadings);
   };
 
   // 滚动到指定标题
