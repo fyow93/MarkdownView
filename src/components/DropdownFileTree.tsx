@@ -28,7 +28,8 @@ interface FileTreeItem {
 export const DropdownFileTree: React.FC<{
   onFileSelect: (filePath: string) => void;
   selectedFile: string;
-}> = ({ onFileSelect, selectedFile }) => {
+  refreshTrigger?: number;
+}> = ({ onFileSelect, selectedFile, refreshTrigger }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [fileTree, setFileTree] = useState<FileTreeItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -155,7 +156,15 @@ export const DropdownFileTree: React.FC<{
   useEffect(() => {
     fetchCurrentProjectRoot();
     fetchFileTree();
-  }, []);
+  }, [refreshTrigger]);
+
+  // 确保在挂载时清空展开状态，避免旧状态影响新目录
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      setExpandedDirs(new Set());
+      setIsOpen(false);
+    }
+  }, [refreshTrigger]);
 
   const visibleCount = getVisibleItemCount(fileTree);
 

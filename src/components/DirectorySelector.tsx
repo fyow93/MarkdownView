@@ -246,31 +246,32 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
                     <div className="text-sm">{t('noFiles')}</div>
                   </div>
                 ) : (
-                  <div className="divide-y">
-                    {directories.map((dir) => (
-                      <div key={dir.path} className="flex items-center justify-between p-3 hover:bg-muted/50">
-                        <button
-                          onClick={() => browseDirectory(dir.path)}
-                          className="flex items-center gap-2 flex-1 text-left"
-                        >
-                          <Folder className="h-4 w-4 text-blue-500" />
-                          <span className="text-sm">{dir.name}</span>
-                        </button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => applyDirectory(dir.path)}
-                          disabled={applying}
-                        >
-                          {applying ? (
-                            <RefreshCw className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Check className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                                     <div className="divide-y">
+                     {directories.map((dir) => (
+                       <div key={dir.path} className="flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer"
+                            onClick={() => browseDirectory(dir.path)}>
+                         <div className="flex items-center gap-2 flex-1">
+                           <Folder className="h-4 w-4 text-blue-500" />
+                           <span className="text-sm">{dir.name}</span>
+                         </div>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             applyDirectory(dir.path);
+                           }}
+                           disabled={applying}
+                         >
+                           {applying ? (
+                             <RefreshCw className="h-3 w-3 animate-spin" />
+                           ) : (
+                             <Check className="h-3 w-3" />
+                           )}
+                         </Button>
+                       </div>
+                     ))}
+                   </div>
                 )}
               </div>
 

@@ -61,9 +61,9 @@ export default function Home() {
             </Button>
             {/* 项目文档下拉菜单 */}
             <DropdownFileTree
-              key={refreshKey}
               onFileSelect={handleFileSelect}
               selectedFile={selectedFile}
+              refreshTrigger={refreshKey}
             />
           </div>
           <div className="flex items-center gap-2">
