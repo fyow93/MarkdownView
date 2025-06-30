@@ -1,4 +1,4 @@
-# Projects Wiki Viewer - Next.js 版本
+# Markdown Viewer - Next.js 版本
 
 这是一个使用 Next.js 和 shadcn/ui 重构的 Markdown 文档查看器项目。
 
