@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,8 @@ export const DropdownFileTree: React.FC<{
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
+  const locale = useLocale();
+  const t = useTranslations('FileTree');
   
   // 计算文件总数，用于动态调整高度
   const countFiles = (items: FileTreeItem[]): number => {
@@ -47,7 +50,7 @@ export const DropdownFileTree: React.FC<{
   useEffect(() => {
     const fetchFileTree = async () => {
       try {
-        const response = await fetch('/api/filetree');
+        const response = await fetch(`/${locale}/api/filetree`);
         if (response.ok) {
           const data = await response.json();
           setFileTree(data);
@@ -60,7 +63,7 @@ export const DropdownFileTree: React.FC<{
     };
 
     fetchFileTree();
-  }, []);
+  }, [locale]);
 
   const toggleDirectory = (path: string) => {
     const newExpanded = new Set(expandedDirs);
@@ -142,7 +145,7 @@ export const DropdownFileTree: React.FC<{
         className="gap-2 bg-background/95 backdrop-blur-sm border-primary/20"
       >
         <FolderTree className="h-4 w-4 text-primary" />
-        <span className="text-sm">项目文档</span>
+        <span className="text-sm">{t('fileTree')}</span>
         {fileTree.length > 0 && (
           <Badge variant="secondary" className="text-xs ml-1">
             {fileTree.filter(item => item.type === 'file').length + 
@@ -169,7 +172,7 @@ export const DropdownFileTree: React.FC<{
           >
             <CardHeader className="pb-2 border-b">
               <CardTitle className="text-sm flex items-center justify-between">
-                <span>选择文档</span>
+                <span>{t('fileTree')}</span>
                 {fileTree.length > 0 && (
                   <Badge variant="outline" className="text-xs">
                     {visibleItemCount} 项
@@ -186,7 +189,7 @@ export const DropdownFileTree: React.FC<{
                 <div className="flex items-center justify-center py-8 text-muted-foreground">
                   <div className="text-center">
                     <FolderTree className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <div className="text-sm">暂无文档</div>
+                    <div className="text-sm">{t('noFiles')}</div>
                   </div>
                 </div>
               ) : (

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -381,6 +382,8 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   const [showToc, setShowToc] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const locale = useLocale();
+  const t = useTranslations('Markdown');
 
   // 改进的目录生成函数，正确处理HTML标签
   // 统一的ID生成函数，确保目录和标题元素使用相同的ID生成逻辑
@@ -539,7 +542,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/file/${encodeURIComponent(filePath)}`);
+      const response = await fetch(`/${locale}/api/file/${encodeURIComponent(filePath)}`);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -563,7 +566,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     } finally {
       setLoading(false);
     }
-  }, [filePath]);
+  }, [filePath, locale]);
 
   // 初始化mermaid配置
   useEffect(() => {
@@ -605,7 +608,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
 
     const checkFileChanges = async () => {
       try {
-        const response = await fetch(`/api/file/${encodeURIComponent(filePath)}`);
+        const response = await fetch(`/${locale}/api/file/${encodeURIComponent(filePath)}`);
         if (response.ok) {
           const data = await response.json();
           if (lastModified && data.lastModified !== lastModified) {
@@ -636,7 +639,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       clearInterval(interval);
       setIsConnected(false);
     };
-  }, [filePath, isRealTimeEnabled, lastModified, saveScrollPosition]);
+  }, [filePath, isRealTimeEnabled, lastModified, saveScrollPosition, locale]);
 
   // 滚动事件处理（防抖）
   useEffect(() => {

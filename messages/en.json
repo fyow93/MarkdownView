@@ -1,0 +1,51 @@
+{
+    "Navigation": {
+        "title": "Markdown Viewer",
+        "fileTree": "File Tree",
+        "tableOfContents": "Table of Contents",
+        "hideFileTree": "Hide File Tree",
+        "showFileTree": "Show File Tree",
+        "hideToc": "Hide TOC",
+        "showToc": "Show TOC",
+        "menu": "Menu",
+        "close": "Close"
+    },
+    "Theme": {
+        "toggleTheme": "Toggle Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+    },
+    "Language": {
+        "toggleLanguage": "Toggle Language",
+        "chinese": "中文",
+        "english": "English"
+    },
+    "FileTree": {
+        "fileTree": "File Tree",
+        "noFiles": "No files found",
+        "loading": "Loading...",
+        "error": "Error loading file tree"
+    },
+    "Markdown": {
+        "loading": "Loading...",
+        "error": "Error loading file",
+        "noFileSelected": "Please select a file to view",
+        "fileNotFound": "File not found"
+    },
+    "RealTime": {
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "connecting": "Connecting...",
+        "toggle": "Toggle Real-time Monitoring"
+    },
+    "Common": {
+        "refresh": "Refresh",
+        "save": "Save",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "back": "Back",
+        "next": "Next",
+        "previous": "Previous"
+    }
+}
