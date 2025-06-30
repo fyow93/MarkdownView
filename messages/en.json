@@ -8,7 +8,8 @@
         "hideToc": "Hide TOC",
         "showToc": "Show TOC",
         "menu": "Menu",
-        "close": "Close"
+        "close": "Close",
+        "changeDirectory": "Change Directory"
     },
     "Theme": {
         "toggleTheme": "Toggle Theme",

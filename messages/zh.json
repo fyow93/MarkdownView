@@ -8,7 +8,8 @@
         "hideToc": "隐藏目录",
         "showToc": "显示目录",
         "menu": "菜单",
-        "close": "关闭"
+        "close": "关闭",
+        "changeDirectory": "更改目录"
     },
     "Theme": {
         "toggleTheme": "切换主题",
