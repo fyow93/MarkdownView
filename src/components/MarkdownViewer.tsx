@@ -485,7 +485,20 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
           children: [],
           isCollapsed: false
         });
-        console.log(`📚 生成目录项 H${level}:`, id, '显示文本:', displayText);
+        console.log(`�� 生成目录项 H${level}:`, {
+          level,
+          originalText: text,
+          displayText: displayText,
+          generatedId: id,
+          processSteps: {
+            step1_removeHtml: text.replace(/<[^>]*>/g, ''),
+            step2_removeFormat: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, ''),
+            step3_normalizeSpace: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim(),
+            step4_toLowerCase: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase(),
+            step5_removeSpecial: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/[^\w\s\u4e00-\u9fff]/g, ''),
+            step6_replaceSpaces: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/[^\w\s\u4e00-\u9fff]/g, '').replace(/\s+/g, '-')
+          }
+        });
       }
     }
 
@@ -522,7 +535,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   // 滚动到指定标题
   const scrollToHeading = (id: string) => {
     console.log('🎯 scrollToHeading被调用:', id);
-    const element = document.getElementById(id);
+    let element = document.getElementById(id);
     console.log('🔍 查找DOM元素:', element ? '找到' : '未找到', element);
     
     // 特别针对一级标题的调试
@@ -530,6 +543,19 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       console.log('❌ 未找到元素，尝试其他方法查找...');
       const allH1 = document.querySelectorAll('h1');
       console.log('📋 页面上所有H1标题:', Array.from(allH1).map(h => ({ id: h.id, text: h.textContent })));
+      console.log('🔍 详细H1信息:', Array.from(allH1).map((h, index) => ({
+        index: index + 1,
+        id: h.id,
+        text: h.textContent?.trim(),
+        outerHTML: h.outerHTML.substring(0, 200) + '...'
+      })));
+      console.log('🎯 要查找的ID:', id);
+      console.log('📊 ID匹配检查:', Array.from(allH1).map(h => ({
+        pageId: h.id,
+        targetId: id,
+        match: h.id === id,
+        textMatch: h.textContent?.trim()
+      })));
       
       // 尝试通过文本内容查找
       const foundByText = Array.from(allH1).find(h => h.id === id);
@@ -969,7 +995,19 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     const text = children?.toString() || '';
     // 使用统一的ID生成函数，确保与目录中的ID一致
     const id = generateId(text);
-    console.log(`🏷️ 生成H${level}标题ID:`, id, '文本:', text);
+    console.log(`🏷️ 生成H${level}标题ID:`, {
+      level,
+      originalText: text,
+      generatedId: id,
+      processSteps: {
+        step1_removeHtml: text.replace(/<[^>]*>/g, ''),
+        step2_removeFormat: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, ''),
+        step3_normalizeSpace: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim(),
+        step4_toLowerCase: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase(),
+        step5_removeSpecial: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/[^\w\s\u4e00-\u9fff]/g, ''),
+        step6_replaceSpaces: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/[^\w\s\u4e00-\u9fff]/g, '').replace(/\s+/g, '-')
+      }
+    });
 
     const className = `
       scroll-mt-24 font-semibold tracking-tight group
