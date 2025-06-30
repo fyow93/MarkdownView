@@ -95,12 +95,12 @@ export const DropdownFileTree: React.FC<{
       const isSelected = !isDirectory && selectedFile === item.path;
       
       return (
-        <div key={`${item.path}-${index}`} className="space-y-1">
+        <div key={`${item.path}-${index}`} className="space-y-0.5">
           <div
-            className={`flex items-center p-2 rounded cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors ${
+            className={`flex items-center px-2 py-1 rounded cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors ${
               isSelected ? 'bg-accent text-accent-foreground' : ''
             }`}
-            style={{ paddingLeft: `${level * 16 + 8}px` }}
+            style={{ paddingLeft: `${level * 12 + 6}px` }}
             onClick={() => {
               if (isDirectory) {
                 toggleDirectory(item.path);
@@ -133,7 +133,7 @@ export const DropdownFileTree: React.FC<{
           </div>
           
           {isDirectory && isExpanded && item.children && (
-            <div className="ml-2">
+            <div className="ml-1">
               {renderFileTree(item.children, level + 1)}
             </div>
           )}
@@ -195,30 +195,22 @@ export const DropdownFileTree: React.FC<{
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <Card className="absolute top-full left-0 mt-2 w-80 max-h-96 z-50 bg-background/95 backdrop-blur-sm border-primary/20 shadow-lg">
-            <CardHeader className="pb-3 border-b">
+            <CardHeader className="px-3 py-2 border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium">{t('fileTree')}</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={fetchFileTree}
-                    disabled={loading}
-                  >
-                    <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-                  </Button>
-                </div>
+                <CardTitle className="text-xs font-medium">{t('fileTree')}</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchFileTree}
+                  disabled={loading}
+                  className="h-6 w-6 p-0"
+                >
+                  <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
               </div>
-              
-              {/* 显示当前目录路径 */}
-              {projectRoot && (
-                <div className="text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded">
-                  {projectRoot}
-                </div>
-              )}
             </CardHeader>
             
-            <CardContent className="p-3">
+            <CardContent className="p-2">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <RefreshCw className="h-4 w-4 animate-spin mr-2" />
@@ -234,11 +226,11 @@ export const DropdownFileTree: React.FC<{
                   <FolderTree className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <div className="text-sm">{t('noFiles')}</div>
                 </div>
-              ) : (
-                <div className="space-y-1 max-h-64 overflow-y-auto">
-                  {renderFileTree(fileTree)}
-                </div>
-              )}
+                              ) : (
+                  <div className="space-y-0.5 max-h-64 overflow-y-auto">
+                    {renderFileTree(fileTree)}
+                  </div>
+                )}
             </CardContent>
           </Card>
         </>
