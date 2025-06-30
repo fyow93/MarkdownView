@@ -209,24 +209,25 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
           ) : (
             /* 目录浏览模式 */
             <div className="space-y-4">
-              {/* 面包屑导航 */}
-              {breadcrumbs.length > 0 && (
-                <div className="flex items-center gap-1 text-sm">
-                  {breadcrumbs.map((crumb, index) => (
-                    <React.Fragment key={crumb.path}>
-                      <button
-                        onClick={() => browseDirectory(crumb.path)}
-                        className="px-2 py-1 hover:bg-muted rounded text-primary hover:text-primary/80"
-                      >
-                        {crumb.name}
-                      </button>
-                      {index < breadcrumbs.length - 1 && (
-                        <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-              )}
+                             {/* 面包屑导航 */}
+               {breadcrumbs.length > 0 && (
+                 <div className="flex items-center gap-1 text-sm flex-wrap">
+                   {breadcrumbs.map((crumb, index) => (
+                     <React.Fragment key={crumb.path}>
+                       <button
+                         onClick={() => browseDirectory(crumb.path)}
+                         className="px-2 py-1 hover:bg-muted rounded text-primary hover:text-primary/80 transition-colors font-medium"
+                         title={`跳转到: ${crumb.path}`}
+                       >
+                         {crumb.name}
+                       </button>
+                       {index < breadcrumbs.length - 1 && (
+                         <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                       )}
+                     </React.Fragment>
+                   ))}
+                 </div>
+               )}
 
               {/* 目录列表 */}
               <div className="border rounded-md max-h-64 overflow-y-auto">
