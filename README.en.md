@@ -11,6 +11,7 @@ A modern Markdown document viewer built with Next.js and shadcn/ui.
 
 - **🎨 Modern UI**: Beautiful interface design based on shadcn/ui component library with gradient backgrounds and animations
 - **📱 Responsive Design**: Perfect adaptation for desktop and mobile devices with smooth user experience
+- **📁 Smart Directory Selection**: One-click project directory selection through UI interface, supporting both browsing and manual input methods
 - **🗂️ Smart Table of Contents**: Auto-generated document TOC with quick navigation and current position highlighting
 - **🌳 File Tree Navigation**: Left panel showing project file structure with expand/collapse support
 - **📝 Markdown Rendering**: Support for GitHub Flavored Markdown including tables, task lists, etc.
@@ -40,41 +41,57 @@ A modern Markdown document viewer built with Next.js and shadcn/ui.
 MarkdownView/
 ├── src/
 │   ├── app/
-│   │   ├── [locale]/
+│   │   ├── [locale]/                   # Internationalized routes
 │   │   │   ├── api/
+│   │   │   │   ├── config/
+│   │   │   │   │   └── project-root/
+│   │   │   │   │       └── route.ts    # Project root configuration API
+│   │   │   │   ├── directories/
+│   │   │   │   │   └── route.ts        # Directory browsing API
 │   │   │   │   ├── filetree/
 │   │   │   │   │   └── route.ts        # File tree API
 │   │   │   │   └── file/
 │   │   │   │       └── [...filename]/
 │   │   │   │           └── route.ts    # File content API
-│   │   │   ├── layout.tsx              # Locale layout
-│   │   │   └── page.tsx                # Main page
+│   │   │   ├── layout.tsx              # Internationalized layout
+│   │   │   └── page.tsx                # Internationalized main page
+│   │   ├── api/                        # Compatible API routes
+│   │   │   ├── filetree/
+│   │   │   │   └── route.ts            # File tree API
+│   │   │   └── file/
+│   │   │       └── [...filename]/
+│   │   │           └── route.ts        # File content API
 │   │   ├── globals.css                 # Global styles
 │   │   ├── layout.tsx                  # Root layout
 │   │   └── page.tsx                    # Root redirect
 │   ├── components/
 │   │   ├── FileTree.tsx                # File tree component
-│   │   ├── DropdownFileTree.tsx        # Dropdown file tree
+│   │   ├── DropdownFileTree.tsx        # Dropdown file tree component (with directory selector)
 │   │   ├── MarkdownViewer.tsx          # Markdown viewer component
+│   │   ├── GitHubStar.tsx              # GitHub star component
 │   │   ├── ThemeProvider.tsx           # Theme provider
-│   │   ├── ThemeToggle.tsx             # Theme toggle
-│   │   ├── LanguageToggle.tsx          # Language toggle
+│   │   ├── ThemeToggle.tsx             # Theme toggle component
+│   │   ├── LanguageToggle.tsx          # Language toggle component
 │   │   └── ui/                         # shadcn/ui components
 │   │       ├── button.tsx
 │   │       ├── card.tsx
+│   │       ├── badge.tsx
 │   │       ├── resizable.tsx
 │   │       ├── scroll-area.tsx
 │   │       └── separator.tsx
-│   ├── i18n/
+│   ├── i18n/                           # Internationalization config
 │   │   ├── request.ts                  # Internationalization request config
 │   │   └── routing.ts                  # Routing config
+│   ├── lib/
+│   │   └── utils.ts                    # Utility functions
 │   └── middleware.ts                   # Internationalization middleware
-├── messages/
+├── messages/                           # Internationalization translation files
 │   ├── en.json                         # English translations
 │   └── zh.json                         # Chinese translations
 ├── example.md                          # Feature demo document
 ├── config.js                           # Application config
 ├── components.json                     # shadcn/ui config
+├── env.example                         # Optional environment variables example
 ├── start.sh                            # Startup script
 ├── check-status.sh                     # Status check script
 └── package.json
@@ -111,39 +128,25 @@ npm run build && npm start
 
 Open your browser and visit [http://localhost:3000](http://localhost:3000)
 
-### 3. Configure Project Root Directory
+### 3. Select Project Directory
 
-The application supports flexible project path configuration through multiple methods:
+**🎯 One-Click Configuration - No Environment Variables Required!**
 
-#### Method 1: Environment Variables (Recommended)
-```bash
-# Set project root path
-export MARKDOWN_PROJECT_ROOT=/path/to/your/markdown/project
+1. **After starting the application**, click the **"File Tree"** button at the top
+2. **Click "Change Directory"** to open the directory selector
+3. **Two selection methods**:
+   - **📁 Browse Mode**: Navigate through directories using the interface
+   - **⌨️ Manual Input**: Directly enter directory path (e.g., `/home/user/my-docs`)
+4. **Click "Apply"** to save settings
 
-# Optional: Set other configurations
-export PORT=3000
-export HOST=localhost
-export POLL_INTERVAL=3000
+**Default Directory**: The application defaults to `~/Documents` directory on first startup
 
-# Then start the application
-./start.sh
-```
+**Example Mode**: If the selected directory is empty or doesn't exist, the application will display the feature demo document `example.md`, showcasing all supported Markdown features.
 
-#### Method 2: Create .env File
-```bash
-# Copy environment variable example file
-cp env.example .env
-
-# Edit .env file to set your project path
-nano .env
-```
-
-#### Method 3: Modify Config File
-Directly edit the default path in the `config.js` file.
-
-**Default Path**: If no environment variables are set, the application will use `~/project-wiki`
-
-**Example Mode**: If the configured project directory doesn't exist, the application will automatically display the feature demo document `example.md`, showcasing all supported Markdown features.
+**✨ Features**:
+- 🚀 **Instant Effect**: File tree updates immediately after directory selection
+- 💾 **Auto Memory**: Application remembers your selected directory
+- 🔒 **Security Restrictions**: Only allows access to user home directory and subdirectories for system security
 
 ## 📱 Feature Description
 
@@ -156,6 +159,13 @@ Directly edit the default path in the `config.js` file.
 - **Slide Menu**: Tap the menu button in top-left corner to open file tree
 - **Auto Collapse**: Automatically close sidebar after file selection
 - **Touch Friendly**: Optimized touch interaction experience
+
+### Smart Directory Selector
+- 🎯 **One-Click Configuration**: Click "Change Directory" to select project directory
+- 📁 **Browse Mode**: Navigate through directories using the interface with breadcrumb navigation
+- ⌨️ **Manual Input**: Directly enter directory path for advanced users
+- 🔒 **Security Restrictions**: Only allows access to user home directory and subdirectories for system security
+- 💾 **Auto Memory**: Application remembers selected directory and automatically restores on next startup
 
 ### File Tree Navigation
 - 📁 **Folders**: Support expand/collapse, showing directory structure
@@ -204,6 +214,18 @@ Directly edit the default path in the `config.js` file.
 - 🎯 **Context Aware**: Proper translation for all UI elements
 
 ## 🔧 Custom Configuration
+
+### Optional Environment Variables
+If needed, you can create a `.env` file for optional configurations:
+```bash
+# Copy example file
+cp env.example .env
+
+# Edit optional configurations (port, polling interval, etc.)
+nano .env
+```
+
+**Note**: Project directory configuration is now fully managed through the UI interface, no environment variables required.
 
 ### Adding New shadcn/ui Components
 

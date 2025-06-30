@@ -11,6 +11,7 @@
 
 - **🎨 现代化UI**: 基于 shadcn/ui 组件库的精美界面设计，支持渐变背景和动画效果
 - **📱 响应式设计**: 完美适配桌面和移动端设备，流畅的用户体验
+- **📁 智能目录选择**: 通过UI界面一键选择项目目录，支持浏览和手动输入两种方式
 - **🗂️ 智能目录**: 自动生成文档目录，支持快速跳转和当前位置高亮
 - **🌳 文件树导航**: 左侧面板显示项目文件结构，支持展开/收起
 - **📝 Markdown渲染**: 支持 GitHub Flavored Markdown，包含表格、任务列表等
@@ -40,7 +41,21 @@
 MarkdownView/
 ├── src/
 │   ├── app/
-│   │   ├── api/
+│   │   ├── [locale]/               # 国际化路由
+│   │   │   ├── api/
+│   │   │   │   ├── config/
+│   │   │   │   │   └── project-root/
+│   │   │   │   │       └── route.ts # 项目根目录配置 API
+│   │   │   │   ├── directories/
+│   │   │   │   │   └── route.ts    # 目录浏览 API
+│   │   │   │   ├── filetree/
+│   │   │   │   │   └── route.ts    # 文件树 API
+│   │   │   │   └── file/
+│   │   │   │       └── [...filename]/
+│   │   │   │           └── route.ts # 文件内容 API
+│   │   │   ├── layout.tsx          # 国际化布局
+│   │   │   └── page.tsx            # 国际化主页面
+│   │   ├── api/                    # 兼容API路由
 │   │   │   ├── filetree/
 │   │   │   │   └── route.ts        # 文件树 API
 │   │   │   └── file/
@@ -48,19 +63,34 @@ MarkdownView/
 │   │   │           └── route.ts    # 文件内容 API
 │   │   ├── globals.css             # 全局样式
 │   │   ├── layout.tsx              # 根布局
-│   │   └── page.tsx                # 主页面
+│   │   └── page.tsx                # 根重定向
 │   └── components/
 │       ├── FileTree.tsx            # 文件树组件
+│       ├── DropdownFileTree.tsx    # 下拉文件树组件（含目录选择器）
 │       ├── MarkdownViewer.tsx      # Markdown查看器组件
+│       ├── GitHubStar.tsx          # GitHub星标组件
+│       ├── ThemeToggle.tsx         # 主题切换组件
+│       ├── LanguageToggle.tsx      # 语言切换组件
 │       └── ui/                     # shadcn/ui 组件
 │           ├── button.tsx
 │           ├── card.tsx
+│           ├── badge.tsx
 │           ├── resizable.tsx
 │           ├── scroll-area.tsx
 │           └── separator.tsx
+│   ├── i18n/                       # 国际化配置
+│   │   ├── request.ts              # 国际化请求配置
+│   │   └── routing.ts              # 路由配置
+│   ├── lib/
+│   │   └── utils.ts                # 工具函数
+│   └── middleware.ts               # 国际化中间件
+├── messages/                       # 国际化翻译文件
+│   ├── en.json                     # 英文翻译
+│   └── zh.json                     # 中文翻译
 ├── example.md                      # 功能演示文档
 ├── config.js                       # 应用配置文件
 ├── components.json                 # shadcn/ui 配置
+├── env.example                     # 可选环境变量示例
 ├── start.sh                        # 启动脚本
 ├── check-status.sh                 # 状态检查脚本
 └── package.json
@@ -97,39 +127,25 @@ npm run build && npm start
 
 打开浏览器访问 [http://localhost:3000](http://localhost:3000)
 
-### 3. 配置项目根目录
+### 3. 选择项目目录
 
-应用支持通过多种方式灵活配置项目路径：
+**🎯 一键配置 - 无需任何环境变量设置！**
 
-#### 方法1：环境变量配置（推荐）
-```bash
-# 设置项目根路径
-export MARKDOWN_PROJECT_ROOT=/path/to/your/markdown/project
+1. **启动应用后**，点击顶部的 **"File Tree"** 按钮
+2. **点击 "Change Directory"** 打开目录选择器
+3. **两种选择方式**：
+   - **📁 浏览模式**：通过界面导航选择您的项目目录
+   - **⌨️ 手动输入**：直接输入目录路径（如：`/home/user/my-docs`）
+4. **点击 "Apply"** 应用设置
 
-# 可选：设置其他配置
-export PORT=3000
-export HOST=localhost
-export POLL_INTERVAL=3000
+**默认目录**：首次启动应用默认指向 `~/Documents` 目录
 
-# 然后启动应用
-./start.sh
-```
+**示例模式**：如果选择的目录为空或不存在，应用将显示功能演示文档 `example.md`，展示所有支持的 Markdown 特性。
 
-#### 方法2：创建 .env 文件
-```bash
-# 复制环境变量示例文件
-cp env.example .env
-
-# 编辑 .env 文件设置你的项目路径
-nano .env
-```
-
-#### 方法3：修改配置文件
-直接编辑 `config.js` 文件中的默认路径。
-
-**默认路径**：如果未设置环境变量，应用将使用 `~/project-wiki`
-
-**示例模式**：如果配置的项目目录不存在，应用将自动显示功能演示文档 `example.md`，展示所有支持的 Markdown 特性。
+**✨ 特点**：
+- 🚀 **即时生效**：选择目录后文件树立即更新
+- 💾 **自动记忆**：应用会记住您选择的目录
+- 🔒 **安全限制**：只能访问用户主目录及子目录，确保系统安全
 
 ## 📱 功能说明
 
@@ -142,6 +158,13 @@ nano .env
 - **侧滑菜单**: 点击左上角菜单按钮打开文件树
 - **自动收起**: 选择文件后自动关闭侧边栏
 - **触摸友好**: 优化的触摸交互体验
+
+### 智能目录选择器
+- 🎯 **一键配置**: 点击 "Change Directory" 即可选择项目目录
+- 📁 **浏览模式**: 通过界面导航选择目录，支持面包屑导航
+- ⌨️ **手动输入**: 直接输入目录路径，适合高级用户
+- 🔒 **安全限制**: 只能访问用户主目录及子目录，确保系统安全
+- 💾 **自动记忆**: 应用记住选择的目录，下次启动自动恢复
 
 ### 文件树导航
 - 📁 **文件夹**: 支持展开/收起，显示目录结构
@@ -178,6 +201,18 @@ nano .env
 - 🎯 智能防抖保存，避免频繁写入
 
 ## 🔧 自定义配置
+
+### 可选环境变量
+如需要，可以创建 `.env` 文件进行可选配置：
+```bash
+# 复制示例文件
+cp env.example .env
+
+# 编辑可选配置（端口、轮询间隔等）
+nano .env
+```
+
+**注意**：项目目录配置已完全通过UI界面管理，无需环境变量设置。
 
 ### 添加新的 shadcn/ui 组件
 

@@ -3,9 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import config from '../../../../config.js';
 
-// 从配置文件获取项目根目录
-const PROJECT_ROOT = config.PROJECT_ROOT;
-
 interface FileNode {
   name: string;
   path: string;
@@ -23,32 +20,31 @@ interface FileNode {
 // 递归获取目录结构
 function getDirectoryStructure(dirPath: string, relativePath: string = ''): FileNode[] {
   const items: FileNode[] = [];
-  
+
   try {
     const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       // 跳过隐藏文件和特定目录
-      if (entry.name.startsWith('.') || 
-          entry.name === 'node_modules' || 
-          entry.name === 'dist' || 
-          entry.name === 'build') {
+      if (entry.name.startsWith('.') ||
+        entry.name === 'node_modules' ||
+        entry.name === 'dist' ||
+        entry.name === 'build') {
         continue;
       }
-      
+
       const itemPath = path.join(dirPath, entry.name);
       const itemRelativePath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
-      
+
       if (entry.isDirectory()) {
         const children = getDirectoryStructure(itemPath, itemRelativePath);
-        if (children.length > 0 || entry.name.endsWith('-test') || entry.name.includes('example')) {
-          items.push({
-            name: entry.name,
-            type: 'directory',
-            path: itemRelativePath,
-            children: children
-          });
-        }
+        // 显示所有目录，不管是否包含文件
+        items.push({
+          name: entry.name,
+          type: 'directory',
+          path: itemRelativePath,
+          children: children
+        });
       } else if (entry.name.endsWith('.md')) {
         items.push({
           name: entry.name,
@@ -61,7 +57,7 @@ function getDirectoryStructure(dirPath: string, relativePath: string = ''): File
   } catch (error) {
     console.error(`Error reading directory ${dirPath}:`, error);
   }
-  
+
   return items.sort((a, b) => {
     if (a.type !== b.type) {
       return a.type === 'directory' ? -1 : 1;
@@ -72,8 +68,10 @@ function getDirectoryStructure(dirPath: string, relativePath: string = ''): File
 
 export async function GET() {
   try {
+    // 动态获取当前项目根目录
+    const PROJECT_ROOT = config.PROJECT_ROOT;
     console.log('Fetching file tree from:', PROJECT_ROOT);
-    
+
     // 检查项目根目录是否存在
     if (!fs.existsSync(PROJECT_ROOT)) {
       console.log('Project root not found, using example file');
@@ -87,7 +85,7 @@ export async function GET() {
         }
       ]);
     }
-    
+
     const tree = getDirectoryStructure(PROJECT_ROOT);
     return NextResponse.json(tree);
   } catch (error) {
