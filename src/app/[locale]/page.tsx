@@ -6,7 +6,7 @@ import MarkdownViewer from '@/components/MarkdownViewer';
 import { DropdownFileTree } from '@/components/DropdownFileTree';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
-import { Github } from 'lucide-react';
+import GitHubStar from '@/components/GitHubStar';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
@@ -45,22 +45,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <LanguageToggle />
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="gap-2"
-            >
-              <a
-                href="https://github.com/fyow93/MarkdownView"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2"
-              >
-                <Github className="h-4 w-4" />
-                <span className="hidden sm:inline">GitHub</span>
-              </a>
-            </Button>
+            <GitHubStar repoUrl="https://github.com/fyow93/MarkdownView" />
           </div>
         </div>
       </header>
