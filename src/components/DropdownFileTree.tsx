@@ -62,8 +62,9 @@ export const DropdownFileTree: React.FC<{
       const data = await response.json();
       
       if (response.ok) {
-        setFileTree(data.files || []);
-        setProjectRoot(data.projectRoot || '');
+        // API返回的是数组，直接使用
+        setFileTree(Array.isArray(data) ? data : []);
+        console.log('📁 File tree loaded:', data);
       } else {
         setError(data.error || t('error'));
       }
