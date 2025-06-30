@@ -215,10 +215,12 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   const generateId = (text: string): string => {
     // 清理HTML标签和格式符号
     const cleanText = text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim();
-    return cleanText
+    const id = cleanText
       .toLowerCase()
       .replace(/[^\w\s\u4e00-\u9fff]/g, '')
       .replace(/\s+/g, '-');
+    
+    return id;
   };
 
   const generateToc = (markdown: string): TocItem[] => {
@@ -243,27 +245,21 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     return headings;
   };
 
-  // 改进的滚动到标题函数 - 修复滚动速度问题
+  // 滚动到指定标题
   const scrollToHeading = (id: string) => {
     const element = document.getElementById(id);
+    
     if (element && scrollAreaRef.current) {
       const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollElement) {
         const containerRect = scrollElement.getBoundingClientRect();
         const elementRect = element.getBoundingClientRect();
         const relativeTop = elementRect.top - containerRect.top + scrollElement.scrollTop;
-        const offset = 80; // 减少偏移量
+        const offset = 80; // 顶部偏移量
         
-        // 使用requestAnimationFrame实现更流畅的滚动
         const targetScrollTop = Math.max(0, relativeTop - offset);
         
-        // 立即滚动，不使用smooth behavior来避免慢速问题
-        scrollElement.scrollTo({
-          top: targetScrollTop,
-          behavior: 'auto'
-        });
-        
-        // 然后使用自定义动画实现平滑效果
+        // 使用自定义动画实现平滑滚动
         const startScrollTop = scrollElement.scrollTop;
         const distance = targetScrollTop - startScrollTop;
         const duration = 300; // 300ms动画时间
@@ -302,7 +298,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       const scrollTop = scrollElement.scrollTop;
       const scrollKey = `scroll-${filePath}`;
       localStorage.setItem(scrollKey, scrollTop.toString());
-      console.log('💾 保存滚动位置:', filePath, scrollTop);
     }
   }, [filePath]);
 
@@ -321,7 +316,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
             top: parseInt(savedPosition, 10),
             behavior: 'auto'
           });
-          console.log('📍 恢复滚动位置:', filePath, savedPosition);
         }, 100);
       }
     }
