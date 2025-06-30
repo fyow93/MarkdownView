@@ -162,15 +162,16 @@
   @apply border-l-4 border-primary pl-4 italic my-4 text-muted-foreground;
 }
 
-.prose table {
+/* Table styles are handled by custom components */
+.prose table:not(.custom-table) {
   @apply w-full border-collapse border border-border mb-4;
 }
 
-.prose th {
+.prose th:not(.custom-th) {
   @apply border border-border px-4 py-2 bg-muted font-semibold text-left;
 }
 
-.prose td {
+.prose td:not(.custom-td) {
   @apply border border-border px-4 py-2;
 }
 

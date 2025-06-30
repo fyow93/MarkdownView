@@ -840,25 +840,42 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
                         </blockquote>
                       ),
                       table: ({ children, ...props }) => (
-                        <Card className="my-6">
-                          <CardContent className="p-0">
-                            <div className="overflow-x-auto">
-                              <table className="w-full border-collapse" {...props}>
-                                {children}
-                              </table>
-                            </div>
-                          </CardContent>
-                        </Card>
+                        <div className="my-6 not-prose">
+                          <Card className="overflow-hidden border-border/50 shadow-sm">
+                            <CardContent className="p-0">
+                              <div className="overflow-x-auto">
+                                <table className="custom-table w-full border-collapse border-0" {...props}>
+                                  {children}
+                                </table>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
                       ),
                       th: ({ children, ...props }) => (
-                        <th className="border border-muted bg-muted/50 px-4 py-2 text-left font-semibold" {...props}>
+                        <th className="custom-th border-r border-b border-border bg-muted/80 px-4 py-3 text-left font-semibold text-foreground first:border-l-0 last:border-r-0" {...props}>
                           {children}
                         </th>
                       ),
                       td: ({ children, ...props }) => (
-                        <td className="border border-muted px-4 py-2" {...props}>
+                        <td className="custom-td border-r border-b border-border px-4 py-3 text-foreground first:border-l-0 last:border-r-0" {...props}>
                           {children}
                         </td>
+                      ),
+                      thead: ({ children, ...props }) => (
+                        <thead className="bg-muted/30" {...props}>
+                          {children}
+                        </thead>
+                      ),
+                      tbody: ({ children, ...props }) => (
+                        <tbody className="divide-y divide-border" {...props}>
+                          {children}
+                        </tbody>
+                      ),
+                      tr: ({ children, ...props }) => (
+                        <tr className="hover:bg-muted/20 transition-colors" {...props}>
+                          {children}
+                        </tr>
                       ),
                     }}
                   >
