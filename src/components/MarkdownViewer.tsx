@@ -109,25 +109,21 @@ const MermaidChart: React.FC<{ chart: string }> = ({ chart }) => {
     let isMounted = true;
     
     const renderChart = async () => {
-      console.log('🎯 开始渲染Mermaid图表...');
-      
       try {
         setIsLoading(true);
         setError('');
         setSvg('');
         
         const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        console.log('🆔 生成的图表ID:', id);
         
         const result = await mermaid.render(id, chart);
-        console.log('🎨 Mermaid渲染完成');
         
         if (isMounted) {
           setSvg(result.svg);
           setIsLoading(false);
         }
       } catch (err) {
-        console.error('❌ Mermaid渲染错误:', err);
+        console.error('Mermaid渲染错误:', err);
         if (isMounted) {
           const errorMessage = err instanceof Error ? err.message : 'Unknown error';
           setError(`Chart rendering failed: ${errorMessage}`);
@@ -249,15 +245,12 @@ const LeftSideToc: React.FC<{
   }, [getAllItemIds, toc]);
 
   const handleItemClick = useCallback((id: string) => {
-    console.log('🖱️ 目录点击:', id);
-    
     // 找到目标标题的路径并展开
     const expandToItem = (targetId: string, items: TocItem[], path: string[] = []): boolean => {
       for (const item of items) {
         const currentPath = [...path, item.id];
         
         if (item.id === targetId) {
-          console.log('📍 找到目标标题:', targetId, '路径:', path);
           // 找到目标，展开路径上的所有父级
           setCollapsedItems(prev => {
             const newSet = new Set(prev);
@@ -277,7 +270,6 @@ const LeftSideToc: React.FC<{
     };
 
     expandToItem(id, toc);
-    console.log('🔄 调用scrollToHeading:', id);
     onItemClick(id);
   }, [toc, onItemClick]);
 
@@ -452,23 +444,76 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
   // 改进的目录生成函数，正确处理HTML标签
   // 统一的ID生成函数，确保目录和标题元素使用相同的ID生成逻辑
   const generateId = useCallback((text: string): string => {
-    // 清理HTML标签和格式符号
-    const cleanText = text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim();
+    // 第一步：清理HTML标签，但保留标签内的文本内容
+    let cleanText = text.replace(/<[^>]*>/g, '');
+    
+    // 第二步：清理markdown格式符号
+    cleanText = cleanText.replace(/[*_`~]/g, '');
+    
+    // 第三步：规范化空白字符
+    cleanText = cleanText.replace(/\s+/g, ' ').trim();
+    
+    // 第四步：生成URL友好的ID
     const id = cleanText
       .toLowerCase()
-      .replace(/[^\w\s\u4e00-\u9fff]/g, '')
-      .replace(/\s+/g, '-');
+      // 保留中文字符、英文字符、数字和连字符
+      .replace(/[^\w\s\u4e00-\u9fff\-\.]/g, '')
+      // 将空格替换为连字符
+      .replace(/\s+/g, '-')
+      // 移除多余的连字符
+      .replace(/-+/g, '-')
+      // 移除开头和结尾的连字符
+      .replace(/^-+|-+$/g, '');
+    
+
     
     return id;
   }, []);
 
   const generateToc = useCallback((markdown: string): TocItem[] => {
-    const headingRegex = /^(#{1,6})\s+(.+)$/gm;
     const flatHeadings: TocItem[] = [];
+    
+    // 首先解析出所有代码块的位置，避免将代码块中的 # 识别为标题
+    const codeBlockRanges: Array<{ start: number; end: number }> = [];
+    
+    // 匹配围栏代码块 (``` 或 ~~~)
+    const fencedCodeRegex = /^```[\s\S]*?^```|^~~~[\s\S]*?^~~~/gm;
+    let codeMatch;
+    while ((codeMatch = fencedCodeRegex.exec(markdown)) !== null) {
+      codeBlockRanges.push({
+        start: codeMatch.index,
+        end: codeMatch.index + codeMatch[0].length
+      });
+    }
+    
+    // 匹配缩进代码块（连续的4空格或tab缩进行）
+    const indentedCodeRegex = /^(?: {4}|\t).*$/gm;
+    while ((codeMatch = indentedCodeRegex.exec(markdown)) !== null) {
+      codeBlockRanges.push({
+        start: codeMatch.index,
+        end: codeMatch.index + codeMatch[0].length
+      });
+    }
+    
+    // 按开始位置排序代码块范围
+    codeBlockRanges.sort((a, b) => a.start - b.start);
+    
+    // 检查给定位置是否在代码块内
+    const isInCodeBlock = (position: number): boolean => {
+      return codeBlockRanges.some(range => position >= range.start && position <= range.end);
+    };
+    
+    // 查找标题，但跳过代码块内的内容
+    const headingRegex = /^(#{1,6})\s+(.+)$/gm;
     let match;
 
-    // 首先生成扁平的标题列表
+    // 首先生成扁平的标题列表，排除代码块中的标题
     while ((match = headingRegex.exec(markdown)) !== null) {
+      // 检查这个匹配是否在代码块内
+      if (isInCodeBlock(match.index)) {
+        continue;
+      }
+      
       const level = match[1].length;
       let text = match[2].trim();
       
@@ -485,131 +530,51 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
           children: [],
           isCollapsed: false
         });
-        console.log(`🏷️ 生成目录项 H${level}:`, {
-          level,
-          originalText: text,
-          displayText: displayText,
-          generatedId: id,
-          processSteps: {
-            step1_removeHtml: text.replace(/<[^>]*>/g, ''),
-            step2_removeFormat: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, ''),
-            step3_normalizeSpace: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim(),
-            step4_toLowerCase: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase(),
-            step5_removeSpecial: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/[^\w\s\u4e00-\u9fff]/g, ''),
-            step6_replaceSpaces: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/[^\w\s\u4e00-\u9fff]/g, '').replace(/\s+/g, '-')
-          }
-        });
       }
     }
 
     // 构建层级结构
     const buildHierarchy = (headings: TocItem[]): TocItem[] => {
-      console.log('🏗️ 开始构建目录层级结构');
-      console.log('📋 扁平标题列表:', headings.map(h => ({ level: h.level, text: h.text, id: h.id })));
-      
       const result: TocItem[] = [];
       const stack: TocItem[] = [];
 
       for (const heading of headings) {
-        console.log(`📝 处理标题: H${heading.level} "${heading.text}" (${heading.id})`);
-        console.log(`📚 当前栈: [${stack.map(s => `H${s.level}:${s.text}`).join(', ')}]`);
-        
         // 找到合适的父级
         while (stack.length > 0 && stack[stack.length - 1].level >= heading.level) {
-          const popped = stack.pop();
-          console.log(`🔙 从栈中弹出: H${popped!.level} "${popped!.text}"`);
+          stack.pop();
         }
 
         if (stack.length === 0) {
           // 顶级标题
-          console.log(`🌟 添加为顶级标题: H${heading.level} "${heading.text}"`);
           result.push(heading);
         } else {
           // 子级标题
           const parent = stack[stack.length - 1];
           if (!parent.children) parent.children = [];
           parent.children.push(heading);
-          console.log(`👶 添加为子标题: H${heading.level} "${heading.text}" -> 父级: H${parent.level} "${parent.text}"`);
         }
 
         stack.push(heading);
-        console.log(`📚 更新后的栈: [${stack.map(s => `H${s.level}:${s.text}`).join(', ')}]`);
-        console.log('---');
       }
-
-      console.log('🎯 最终层级结构:');
-      const printStructure = (items: TocItem[], depth = 0) => {
-        items.forEach(item => {
-          console.log(`${'  '.repeat(depth)}H${item.level}: ${item.text} (${item.id})`);
-          if (item.children && item.children.length > 0) {
-            printStructure(item.children, depth + 1);
-          }
-        });
-      };
-      printStructure(result);
 
       return result;
     };
 
     const finalToc = buildHierarchy(flatHeadings);
-    console.log('✅ 目录生成完成, 顶级项目数:', finalToc.length);
     return finalToc;
   }, [generateId]);
 
   // 滚动到指定标题
   const scrollToHeading = (id: string) => {
-    console.log('🎯 scrollToHeading被调用:', id);
     let element = document.getElementById(id);
-    console.log('🔍 查找DOM元素:', element ? '找到' : '未找到', element);
     
-    // 查找所有级别的标题进行调试
+    // 如果未找到元素，尝试在所有标题中查找
     if (!element) {
-      console.log('❌ 未找到元素，尝试查找所有级别的标题...');
-      
-      // 查找所有标题元素
       const allHeadings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-      console.log('📋 页面上所有标题:', Array.from(allHeadings).map(h => ({ 
-        tagName: h.tagName, 
-        id: h.id, 
-        text: h.textContent?.trim() 
-      })));
-      
-      console.log('🔍 详细标题信息:', Array.from(allHeadings).map((h, index) => ({
-        index: index + 1,
-        tagName: h.tagName,
-        id: h.id,
-        text: h.textContent?.trim(),
-        outerHTML: h.outerHTML.substring(0, 150) + '...'
-      })));
-      
-      console.log('🎯 要查找的ID:', id);
-      console.log('📊 ID匹配检查:', Array.from(allHeadings).map(h => ({
-        tagName: h.tagName,
-        pageId: h.id,
-        targetId: id,
-        match: h.id === id,
-        textMatch: h.textContent?.trim()
-      })));
-      
-      // 尝试在所有标题中查找匹配的ID
       const foundById = Array.from(allHeadings).find(h => h.id === id);
       if (foundById) {
-        console.log('✅ 找到匹配的标题:', foundById.tagName, foundById.id, foundById.textContent);
         element = foundById;
-      } else {
-        console.log('❌ 在所有标题中都没有找到匹配的ID');
       }
-    }
-    
-    if (element) {
-      console.log('🎯 找到目标元素:', element.tagName, element.id, element.textContent);
-      console.log('📐 元素位置信息:', {
-        offsetTop: element.offsetTop,
-        offsetLeft: element.offsetLeft,
-        clientHeight: element.clientHeight,
-        scrollTop: element.scrollTop,
-        boundingRect: element.getBoundingClientRect()
-      });
     }
     
     if (element && scrollAreaRef.current) {
@@ -619,18 +584,10 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
         const elementRect = element.getBoundingClientRect();
         const relativeTop = elementRect.top - containerRect.top + scrollElement.scrollTop;
         
-        console.log('📊 滚动计算:', {
-          containerRect,
-          elementRect,
-          relativeTop,
-          scrollElementTop: scrollElement.scrollTop
-        });
-        
         // 统一的偏移量，与scroll-mt-24 (96px)保持一致
         const offset = 100; // 与scroll-mt-24略微一致的偏移量
         
         const targetScrollTop = Math.max(0, relativeTop - offset);
-        console.log(`🎯 滚动到标题:`, id, '目标位置:', targetScrollTop);
         
         // 使用自定义动画实现平滑滚动
         const startScrollTop = scrollElement.scrollTop;
@@ -653,18 +610,12 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
           
           if (progress < 1) {
             requestAnimationFrame(animateScroll);
-          } else {
-            console.log('✅ 滚动动画完成');
           }
         };
         
         requestAnimationFrame(animateScroll);
         setActiveHeadingId(id);
-      } else {
-        console.log('❌ 未找到滚动容器');
       }
-    } else {
-      console.log('❌ 跳转失败:', element ? '找到元素但未找到滚动区域' : '未找到目标元素');
     }
   };
 
@@ -677,7 +628,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       const scrollTop = scrollElement.scrollTop;
       const scrollKey = `scroll-${filePath}`;
       localStorage.setItem(scrollKey, scrollTop.toString());
-      console.log('💾 保存阅读位置:', filePath, '位置:', scrollTop);
     }
   }, [filePath]);
 
@@ -692,7 +642,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollElement) {
         const targetPosition = parseInt(savedPosition, 10);
-        console.log('📍 恢复阅读位置:', filePath, '位置:', targetPosition);
         
         // 等待内容完全渲染后再滚动
         setTimeout(() => {
@@ -700,11 +649,8 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
             top: targetPosition,
             behavior: 'auto'
           });
-          console.log('✅ 阅读位置已恢复');
         }, 200);
       }
-    } else {
-      console.log('📖 新文件，从顶部开始阅读:', filePath);
     }
   }, [filePath]);
 
@@ -804,7 +750,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     }
 
     setIsConnected(true);
-    console.log('👀 开始监控文件:', filePath);
 
     const checkFileChanges = async () => {
       try {
@@ -812,8 +757,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
         if (response.ok) {
           const data = await response.json();
           if (lastModified && data.lastModified !== lastModified) {
-            console.log('📝 检测到文件变更:', filePath);
-            console.log('🔄 文件已更改，重新加载...');
             saveScrollPosition();
             setContent(data.content);
             setLastModified(data.lastModified);
@@ -836,7 +779,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
           }
         }
       } catch (error) {
-        console.error('❌ 文件变更检测错误:', error);
+        console.error('文件变更检测错误:', error);
       }
     };
 
@@ -844,7 +787,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     const interval = setInterval(checkFileChanges, 3000);
 
     return () => {
-      console.log('🔇 停止监控文件:', filePath);
       clearInterval(interval);
       setIsConnected(false);
     };
@@ -879,7 +821,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     
     const scrollKey = `scroll-${filePath}`;
     localStorage.removeItem(scrollKey);
-    console.log('🗑️ 清除阅读位置:', filePath);
   };
 
   // 清理所有滚动位置记录
@@ -887,7 +828,6 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     const keys = Object.keys(localStorage);
     const scrollKeys = keys.filter(key => key.startsWith('scroll-'));
     scrollKeys.forEach(key => localStorage.removeItem(key));
-    console.log('🧹 清理所有阅读位置记录:', scrollKeys.length, '个文件');
   };
 
   // 获取所有已保存阅读位置的文件
@@ -900,95 +840,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     }));
   };
 
-  // 调试函数：检查页面中所有标题的ID
-  const debugHeadingIds = () => {
-    console.log('🚨=== 标题跳转调试信息 ===🚨');
-    
-    // 获取页面上所有标题元素
-    const allHeadings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    console.log('📋 页面上的标题元素:');
-    Array.from(allHeadings).forEach((heading, index) => {
-      console.log(`  ${index + 1}. ${heading.tagName} id="${heading.id}" text="${heading.textContent}"`);
-    });
 
-    // 专门检查一级标题
-    const h1Elements = document.querySelectorAll('h1');
-    console.log('🔍 专门检查H1标题:');
-    Array.from(h1Elements).forEach((h1, index) => {
-      console.log(`  H1 ${index + 1}:`, {
-        id: h1.id,
-        text: h1.textContent,
-        element: h1,
-        offsetTop: h1.offsetTop,
-        offsetLeft: h1.offsetLeft,
-        scrollTop: h1.scrollTop,
-        boundingRect: h1.getBoundingClientRect(),
-        className: h1.className,
-        style: h1.style.cssText,
-        parentElement: h1.parentElement?.tagName
-      });
-    });
-
-    // 获取TOC中的所有ID
-    const getAllTocIds = (items: TocItem[], prefix = '') => {
-      const ids: string[] = [];
-      items.forEach((item, index) => {
-        const currentPrefix = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
-        console.log(`${currentPrefix}. Level ${item.level}: "${item.text}" -> id: "${item.id}"`);
-        ids.push(item.id);
-        if (item.children) {
-          ids.push(...getAllTocIds(item.children, currentPrefix));
-        }
-      });
-      return ids;
-    };
-
-    console.log('📚 目录中的标题ID:');
-    const tocIds = getAllTocIds(toc);
-
-    // 专门检查一级标题的目录项
-    const h1TocItems = toc.filter(item => item.level === 1);
-    console.log('🎯 专门检查H1目录项:');
-    h1TocItems.forEach((item, index) => {
-      console.log(`  H1目录 ${index + 1}:`, {
-        id: item.id,
-        text: item.text,
-        level: item.level,
-        hasChildren: !!item.children,
-        childrenCount: item.children?.length || 0
-      });
-      
-      // 检查对应的DOM元素
-      const domElement = document.getElementById(item.id);
-      console.log(`    对应DOM元素:`, domElement ? '找到' : '未找到', domElement);
-      if (domElement) {
-        console.log(`    DOM详情:`, {
-          tagName: domElement.tagName,
-          className: domElement.className,
-          textContent: domElement.textContent,
-          offsetTop: domElement.offsetTop
-        });
-      }
-    });
-
-    // 比较差异
-    console.log('⚖️ 对比页面标题与目录标题:');
-    const pageHeadingIds = Array.from(allHeadings).map(h => h.id);
-    const missingInPage = tocIds.filter(id => !pageHeadingIds.includes(id));
-    const missingInToc = pageHeadingIds.filter(id => id && !tocIds.includes(id));
-    
-    if (missingInPage.length > 0) {
-      console.log('❌ 目录中有但页面中没有的ID:', missingInPage);
-    }
-    if (missingInToc.length > 0) {
-      console.log('❌ 页面中有但目录中没有的ID:', missingInToc);
-    }
-    if (missingInPage.length === 0 && missingInToc.length === 0) {
-      console.log('✅ 目录和页面标题ID完全匹配');
-    }
-
-    console.log('🚨=== 调试信息结束 ===🚨');
-  };
 
   useEffect(() => {
     loadContent();
@@ -1015,35 +867,37 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     };
   }, [saveScrollPosition]);
 
-  // 内容加载完成后恢复滚动位置和调试
+  // 内容加载完成后恢复滚动位置
   useEffect(() => {
     if (content && !loading) {
       restoreScrollPosition();
-      // 延迟执行调试，确保DOM完全渲染
-      setTimeout(() => {
-        debugHeadingIds();
-      }, 500);
     }
   }, [content, loading, restoreScrollPosition]);
 
+  // 提取React元素中的纯文本内容
+  const extractTextFromReactNode = (node: React.ReactNode): string => {
+    if (typeof node === 'string') {
+      return node;
+    }
+    if (typeof node === 'number') {
+      return String(node);
+    }
+    if (Array.isArray(node)) {
+      return node.map(extractTextFromReactNode).join('');
+    }
+    if (node && typeof node === 'object' && 'props' in node) {
+      // 如果是React元素，递归提取其children的文本
+      return extractTextFromReactNode((node as any).props?.children);
+    }
+    return '';
+  };
+
   // 自定义标题组件，添加id属性
   const HeadingComponent = ({ level, children, ...props }: { level: number; children?: React.ReactNode } & React.HTMLAttributes<HTMLHeadingElement>) => {
-    const text = children?.toString() || '';
+    // 正确提取文本内容，处理React元素
+    const text = extractTextFromReactNode(children);
     // 使用统一的ID生成函数，确保与目录中的ID一致
     const id = generateId(text);
-    console.log(`🏷️ 生成H${level}标题ID:`, {
-      level,
-      originalText: text,
-      generatedId: id,
-      processSteps: {
-        step1_removeHtml: text.replace(/<[^>]*>/g, ''),
-        step2_removeFormat: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, ''),
-        step3_normalizeSpace: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim(),
-        step4_toLowerCase: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase(),
-        step5_removeSpecial: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/[^\w\s\u4e00-\u9fff]/g, ''),
-        step6_replaceSpaces: text.replace(/<[^>]*>/g, '').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/[^\w\s\u4e00-\u9fff]/g, '').replace(/\s+/g, '-')
-      }
-    });
 
     const className = `
       scroll-mt-24 font-semibold tracking-tight group
@@ -1303,34 +1157,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
                 >
                   <MapPin className="h-4 w-4" />
                 </Button>
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={debugHeadingIds}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                    >
-                      🐛 调试
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        const h1Items = toc.filter(item => item.level === 1);
-                        if (h1Items.length > 0) {
-                          console.log('🧪 测试第一个H1标题跳转:', h1Items[0].id);
-                          scrollToHeading(h1Items[0].id);
-                        } else {
-                          console.log('❌ 没有找到H1标题');
-                        }
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
-                    >
-                      🧪 测试H1
-                    </Button>
-                  </div>
-                )}
+
                 <Button onClick={loadContent} variant="ghost" size="sm">
                   <RefreshCw className="h-4 w-4" />
                 </Button>
