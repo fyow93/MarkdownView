@@ -23,20 +23,27 @@ export async function GET(
     return NextResponse.json({ error: '文件名不能为空' }, { status: 400 });
   }
   
-  // 安全检查
-  if (!isValidPath(requestedFile)) {
-    return NextResponse.json({ error: '访问被拒绝：无效的文件路径' }, { status: 403 });
-  }
-  
   // 只允许访问.md文件
   if (!requestedFile.endsWith('.md')) {
     return NextResponse.json({ error: '访问被拒绝：只能访问Markdown文件' }, { status: 403 });
   }
   
-  const filePath = path.join(PROJECT_ROOT, requestedFile);
+  let filePath: string;
   
-  console.log('Requested file:', requestedFile);
-  console.log('Full path:', filePath);
+  // 检查是否是示例文件请求或项目根目录不存在
+  if (requestedFile === 'example.md' || !fs.existsSync(PROJECT_ROOT)) {
+    filePath = path.resolve('./example.md');
+    console.log('Using example file:', filePath);
+  } else {
+    // 安全检查
+    if (!isValidPath(requestedFile)) {
+      return NextResponse.json({ error: '访问被拒绝：无效的文件路径' }, { status: 403 });
+    }
+    
+    filePath = path.join(PROJECT_ROOT, requestedFile);
+    console.log('Requested file:', requestedFile);
+    console.log('Full path:', filePath);
+  }
   
   // 检查文件是否存在
   if (!fs.existsSync(filePath)) {

@@ -29,9 +29,11 @@ else
     echo "❌ 文件树 API 异常"
 fi
 
-# 检查文件内容API
-if curl -s "http://localhost:$PORT/api/file/README.md" | jq . > /dev/null 2>&1; then
-    echo "✅ 文件内容 API 正常"
+# 检查文件内容API（优先检查示例文件）
+if curl -s "http://localhost:$PORT/api/file/example.md" | jq . > /dev/null 2>&1; then
+    echo "✅ 文件内容 API 正常 (示例文件)"
+elif curl -s "http://localhost:$PORT/api/file/README.md" | jq . > /dev/null 2>&1; then
+    echo "✅ 文件内容 API 正常 (项目文件)"
 else
     echo "❌ 文件内容 API 异常"
 fi

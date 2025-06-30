@@ -5,6 +5,9 @@ const config = {
   // 项目根路径 - 可以通过环境变量覆盖
   PROJECT_ROOT: process.env.MARKDOWN_PROJECT_ROOT || path.resolve(process.env.HOME || '~', 'project-wiki'),
   
+  // 示例文件路径
+  EXAMPLE_FILE: path.resolve('./example.md'),
+  
   // 服务器配置
   SERVER: {
     PORT: process.env.PORT || 3000,

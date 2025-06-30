@@ -73,6 +73,21 @@ function getDirectoryStructure(dirPath: string, relativePath: string = ''): File
 export async function GET() {
   try {
     console.log('Fetching file tree from:', PROJECT_ROOT);
+    
+    // 检查项目根目录是否存在
+    if (!fs.existsSync(PROJECT_ROOT)) {
+      console.log('Project root not found, using example file');
+      // 返回示例文件结构
+      return NextResponse.json([
+        {
+          name: 'example.md',
+          type: 'file',
+          path: 'example.md',
+          size: fs.statSync(path.resolve('./example.md')).size
+        }
+      ]);
+    }
+    
     const tree = getDirectoryStructure(PROJECT_ROOT);
     return NextResponse.json(tree);
   } catch (error) {
