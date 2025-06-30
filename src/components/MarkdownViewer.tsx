@@ -249,12 +249,15 @@ const LeftSideToc: React.FC<{
   }, [getAllItemIds, toc]);
 
   const handleItemClick = useCallback((id: string) => {
+    console.log('🖱️ 目录点击:', id);
+    
     // 找到目标标题的路径并展开
     const expandToItem = (targetId: string, items: TocItem[], path: string[] = []): boolean => {
       for (const item of items) {
         const currentPath = [...path, item.id];
         
         if (item.id === targetId) {
+          console.log('📍 找到目标标题:', targetId, '路径:', path);
           // 找到目标，展开路径上的所有父级
           setCollapsedItems(prev => {
             const newSet = new Set(prev);
@@ -274,6 +277,7 @@ const LeftSideToc: React.FC<{
     };
 
     expandToItem(id, toc);
+    console.log('🔄 调用scrollToHeading:', id);
     onItemClick(id);
   }, [toc, onItemClick]);
 
@@ -481,6 +485,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
           children: [],
           isCollapsed: false
         });
+        console.log(`📚 生成目录项 H${level}:`, id, '显示文本:', displayText);
       }
     }
 
@@ -516,7 +521,9 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
 
   // 滚动到指定标题
   const scrollToHeading = (id: string) => {
+    console.log('🎯 scrollToHeading被调用:', id);
     const element = document.getElementById(id);
+    console.log('🔍 查找DOM元素:', element ? '找到' : '未找到', element);
     
     if (element && scrollAreaRef.current) {
       const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
@@ -793,6 +800,26 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     }));
   };
 
+  // 调试函数：检查页面中所有标题的ID
+  const debugHeadingIds = () => {
+    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    console.log('🔍 页面中的所有标题ID:');
+    headings.forEach((heading, index) => {
+      console.log(`  ${index + 1}. ${heading.tagName} ID="${heading.id}" 文本="${heading.textContent}"`);
+    });
+    
+    console.log('📚 目录中的所有ID:');
+    const getAllTocIds = (items: TocItem[], prefix = '') => {
+      items.forEach((item, index) => {
+        console.log(`  ${prefix}${index + 1}. ${item.text} ID="${item.id}" Level=${item.level}`);
+        if (item.children && item.children.length > 0) {
+          getAllTocIds(item.children, prefix + '  ');
+        }
+      });
+    };
+    getAllTocIds(toc);
+  };
+
   useEffect(() => {
     loadContent();
   }, [loadContent]);
@@ -818,10 +845,14 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     };
   }, [saveScrollPosition]);
 
-  // 内容加载完成后恢复滚动位置
+  // 内容加载完成后恢复滚动位置和调试
   useEffect(() => {
     if (content && !loading) {
       restoreScrollPosition();
+      // 延迟执行调试，确保DOM完全渲染
+      setTimeout(() => {
+        debugHeadingIds();
+      }, 500);
     }
   }, [content, loading, restoreScrollPosition]);
 
@@ -830,6 +861,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
     const text = children?.toString() || '';
     // 使用统一的ID生成函数，确保与目录中的ID一致
     const id = generateId(text);
+    console.log(`🏷️ 生成H${level}标题ID:`, id, '文本:', text);
 
     const className = `
       scroll-mt-24 font-semibold tracking-tight group
@@ -1088,6 +1120,14 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
                   title={t('clearScrollPosition')}
                 >
                   <MapPin className="h-4 w-4" />
+                </Button>
+                <Button 
+                  onClick={debugHeadingIds} 
+                  variant="ghost" 
+                  size="sm"
+                  title="调试标题ID匹配"
+                >
+                  🔍
                 </Button>
                 <Button onClick={loadContent} variant="ghost" size="sm">
                   <RefreshCw className="h-4 w-4" />
