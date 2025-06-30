@@ -504,32 +504,56 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
 
     // 构建层级结构
     const buildHierarchy = (headings: TocItem[]): TocItem[] => {
+      console.log('🏗️ 开始构建目录层级结构');
+      console.log('📋 扁平标题列表:', headings.map(h => ({ level: h.level, text: h.text, id: h.id })));
+      
       const result: TocItem[] = [];
       const stack: TocItem[] = [];
 
       for (const heading of headings) {
+        console.log(`📝 处理标题: H${heading.level} "${heading.text}" (${heading.id})`);
+        console.log(`📚 当前栈: [${stack.map(s => `H${s.level}:${s.text}`).join(', ')}]`);
+        
         // 找到合适的父级
         while (stack.length > 0 && stack[stack.length - 1].level >= heading.level) {
-          stack.pop();
+          const popped = stack.pop();
+          console.log(`🔙 从栈中弹出: H${popped!.level} "${popped!.text}"`);
         }
 
         if (stack.length === 0) {
           // 顶级标题
+          console.log(`🌟 添加为顶级标题: H${heading.level} "${heading.text}"`);
           result.push(heading);
         } else {
           // 子级标题
           const parent = stack[stack.length - 1];
           if (!parent.children) parent.children = [];
           parent.children.push(heading);
+          console.log(`👶 添加为子标题: H${heading.level} "${heading.text}" -> 父级: H${parent.level} "${parent.text}"`);
         }
 
         stack.push(heading);
+        console.log(`📚 更新后的栈: [${stack.map(s => `H${s.level}:${s.text}`).join(', ')}]`);
+        console.log('---');
       }
+
+      console.log('🎯 最终层级结构:');
+      const printStructure = (items: TocItem[], depth = 0) => {
+        items.forEach(item => {
+          console.log(`${'  '.repeat(depth)}H${item.level}: ${item.text} (${item.id})`);
+          if (item.children && item.children.length > 0) {
+            printStructure(item.children, depth + 1);
+          }
+        });
+      };
+      printStructure(result);
 
       return result;
     };
 
-    return buildHierarchy(flatHeadings);
+    const finalToc = buildHierarchy(flatHeadings);
+    console.log('✅ 目录生成完成, 顶级项目数:', finalToc.length);
+    return finalToc;
   }, [generateId]);
 
   // 滚动到指定标题
