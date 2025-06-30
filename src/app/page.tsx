@@ -54,7 +54,7 @@ export default function Home() {
             >
               {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
-            <h1 className="text-xl font-semibold">Projects Wiki Viewer</h1>
+                          <h1 className="text-xl font-semibold">Markdown Viewer</h1>
           </div>
           <div className="text-sm text-muted-foreground hidden sm:block">
             使用{' '}

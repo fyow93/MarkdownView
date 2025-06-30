@@ -39,8 +39,8 @@ else
 fi
 
 # 检查页面标题
-TITLE=$(curl -s http://localhost:$PORT | grep -o "Projects Wiki Viewer" | head -1)
-if [ "$TITLE" = "Projects Wiki Viewer" ]; then
+TITLE=$(curl -s http://localhost:$PORT | grep -o "Markdown Viewer" | head -1)
+if [ "$TITLE" = "Markdown Viewer" ]; then
     echo "✅ 页面标题正确"
 else
     echo "❌ 页面标题异常"

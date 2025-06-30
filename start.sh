@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Projects Wiki Viewer - Next.js Version
+# Markdown Viewer - Next.js Version
 # 启动脚本
 
-echo "🚀 启动 Projects Wiki Viewer (Next.js版本)..."
+echo "🚀 启动 Markdown Viewer (Next.js版本)..."
 
 # 加载环境变量（如果存在.env文件）
 if [ -f ".env" ]; then
