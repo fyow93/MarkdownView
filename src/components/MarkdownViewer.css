@@ -1,0 +1,583 @@
+.markdown-viewer {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  overflow: hidden;
+}
+
+.markdown-header {
+  padding: 12px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.file-path {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+  flex: 1;
+}
+
+.file-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.last-modified {
+  font-style: italic;
+}
+
+.error-badge {
+  background: #dc3545;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.markdown-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+
+/* Markdown 内容样式 */
+.markdown-content h1 {
+  font-size: 2.5em;
+  font-weight: 600;
+  margin: 0.67em 0;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 0.3em;
+  color: #2c3e50;
+}
+
+.markdown-content h2 {
+  font-size: 2em;
+  font-weight: 600;
+  margin: 0.83em 0 0.5em 0;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 0.2em;
+  color: #34495e;
+}
+
+.markdown-content h3 {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin: 1em 0 0.5em 0;
+  color: #34495e;
+}
+
+.markdown-content h4 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin: 1em 0 0.5em 0;
+  color: #34495e;
+}
+
+.markdown-content h5 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 1em 0 0.5em 0;
+  color: #34495e;
+}
+
+.markdown-content h6 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 1em 0 0.5em 0;
+  color: #34495e;
+}
+
+.markdown-content p {
+  margin: 1em 0;
+}
+
+.markdown-content ul, .markdown-content ol {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+.markdown-content li {
+  margin: 0.5em 0;
+}
+
+.markdown-content blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid #007bff;
+  background: #f8f9fa;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.markdown-content th, .markdown-content td {
+  border: 1px solid #e9ecef;
+  padding: 12px 16px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-content th {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.markdown-content tbody tr:nth-child(even) {
+  background: #f8f9fa;
+}
+
+.markdown-content tbody tr:hover {
+  background: #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.markdown-content td code {
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.markdown-content code {
+  background: #f1f3f4;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+  color: #d73a49;
+}
+
+.markdown-content pre {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+}
+
+.markdown-content a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid #e9ecef;
+  margin: 2em 0;
+}
+
+/* 任务列表样式 */
+.markdown-content input[type="checkbox"] {
+  margin-right: 0.5em;
+}
+
+/* 加载状态样式 */
+.loading-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #6c757d;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 错误状态样式 */
+.error-message {
+  text-align: center;
+  padding: 40px;
+  color: #dc3545;
+}
+
+.error-message h2 {
+  margin-bottom: 16px;
+  border: none;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .markdown-content {
+    padding: 15px;
+  }
+  
+  .markdown-content h1 {
+    font-size: 2em;
+  }
+  
+  .markdown-content h2 {
+    font-size: 1.75em;
+  }
+  
+  .markdown-content h3 {
+    font-size: 1.5em;
+  }
+  
+  .markdown-content table {
+    font-size: 0.9em;
+  }
+  
+  .markdown-content th, .markdown-content td {
+    padding: 6px 8px;
+  }
+}
+
+/* 滚动条样式 */
+.markdown-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.markdown-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.markdown-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.markdown-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Mermaid图表样式 */
+.mermaid-chart {
+  margin: 1rem 0;
+  text-align: center;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mermaid-chart svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin: 1rem 0;
+  color: #6c757d;
+}
+
+.mermaid-loading .loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e9ecef;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.mermaid-error {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  color: #742a2a;
+}
+
+.mermaid-error .error-header {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #c53030;
+}
+
+.mermaid-error .error-message {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.mermaid-error .error-code {
+  background: #fff;
+  border: 1px solid #fed7d7;
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  color: #4a5568;
+  margin-top: 0.5rem;
+}
+
+/* 深色主题下的mermaid样式 */
+@media (prefers-color-scheme: dark) {
+  .mermaid-chart {
+    background: #1a1a1a;
+    border-color: #333;
+  }
+  
+  .mermaid-loading {
+    background: #2d2d2d;
+    border-color: #404040;
+    color: #a0a0a0;
+  }
+  
+  .mermaid-error {
+    background: #2d1b1b;
+    border-color: #4a2626;
+    color: #f5b5b5;
+  }
+  
+  .mermaid-error .error-header {
+    color: #ff6b6b;
+  }
+  
+  .mermaid-error .error-code {
+    background: #1a1a1a;
+    border-color: #4a2626;
+    color: #c0c0c0;
+  }
+}
+
+/* WebSocket 和实时更新功能样式 */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.connection-status.connected {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.connection-status.disconnected {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.connection-status .status-icon {
+  font-size: 14px;
+  animation: pulse 2s infinite;
+}
+
+.connection-status.connected .status-icon {
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.auto-refresh-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.auto-refresh-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #495057;
+  transition: color 0.2s ease;
+}
+
+.auto-refresh-toggle label:hover {
+  color: #007bff;
+}
+
+.auto-refresh-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #6c757d;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auto-refresh-toggle input[type="checkbox"]:checked {
+  background: #007bff;
+  border-color: #007bff;
+}
+
+.last-update {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6c757d;
+  font-style: italic;
+  padding: 4px 8px;
+  background: #e9ecef;
+  border-radius: 12px;
+}
+
+.last-update .update-icon {
+  font-size: 12px;
+  animation: rotate 1s linear;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .markdown-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .header-controls {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  
+  .connection-status, 
+  .auto-refresh-toggle, 
+  .last-update {
+    font-size: 11px;
+  }
+  
+  .file-path {
+    font-size: 12px;
+  }
+}
+
+/* 实时更新动画效果 */
+.markdown-content.updating {
+  position: relative;
+}
+
+.markdown-content.updating::before {
+  content: '🔄 正在更新...';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 123, 255, 0.9);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1000;
+  animation: fadeInOut 1s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+/* 成功更新提示 */
+.update-success {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #28a745;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 1000;
+  animation: slideInRight 0.3s ease, fadeOut 2s ease 1s forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+} 
