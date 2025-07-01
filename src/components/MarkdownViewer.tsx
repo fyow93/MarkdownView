@@ -846,7 +846,10 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       
       // 检查滚动位置，决定是否显示"回到顶部"按钮
       const scrollTop = scrollElement.scrollTop;
-      setShowBackToTop(scrollTop > 300); // 滚动超过300px时显示
+      const shouldShow = scrollTop > 300;
+      setShowBackToTop(shouldShow);
+      
+
     };
 
     scrollElement.addEventListener('scroll', handleScroll);
@@ -1101,22 +1104,23 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
         </div>
         
         {/* 回到顶部按钮 */}
-        {showBackToTop && (
-          <Button
-            onClick={scrollToTop}
-            className={`
-              fixed bottom-8 right-8 z-50 w-12 h-12 rounded-full shadow-lg
-              bg-primary hover:bg-primary/90 text-primary-foreground
-              transition-all duration-300 ease-in-out
-              hover:scale-110 hover:shadow-xl
-              ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
-            `}
-            size="icon"
-            title={t('backToTop')}
-          >
-            <ArrowUp className="h-5 w-5" />
-          </Button>
-        )}
+        <Button
+          onClick={scrollToTop}
+          className={`
+            fixed bottom-8 right-8 z-50 w-12 h-12 rounded-full shadow-lg
+            bg-primary hover:bg-primary/90 text-primary-foreground
+            transition-all duration-300 ease-in-out
+            hover:scale-110 hover:shadow-xl
+            ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-30 translate-y-0'}
+          `}
+          style={{ 
+            display: showBackToTop || process.env.NODE_ENV === 'development' ? 'flex' : 'none' 
+          }}
+          size="icon"
+          title={t('backToTop')}
+        >
+          <ArrowUp className="h-5 w-5" />
+        </Button>
       </div>
     );
   }
@@ -1152,22 +1156,23 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
         </div>
         
         {/* 回到顶部按钮 */}
-        {showBackToTop && (
-          <Button
-            onClick={scrollToTop}
-            className={`
-              fixed bottom-8 right-8 z-50 w-12 h-12 rounded-full shadow-lg
-              bg-primary hover:bg-primary/90 text-primary-foreground
-              transition-all duration-300 ease-in-out
-              hover:scale-110 hover:shadow-xl
-              ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
-            `}
-            size="icon"
-            title={t('backToTop')}
-          >
-            <ArrowUp className="h-5 w-5" />
-          </Button>
-        )}
+        <Button
+          onClick={scrollToTop}
+          className={`
+            fixed bottom-8 right-8 z-50 w-12 h-12 rounded-full shadow-lg
+            bg-primary hover:bg-primary/90 text-primary-foreground
+            transition-all duration-300 ease-in-out
+            hover:scale-110 hover:shadow-xl
+            ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-30 translate-y-0'}
+          `}
+          style={{ 
+            display: showBackToTop || process.env.NODE_ENV === 'development' ? 'flex' : 'none' 
+          }}
+          size="icon"
+          title={t('backToTop')}
+        >
+          <ArrowUp className="h-5 w-5" />
+        </Button>
       </div>
     );
   }
@@ -1311,22 +1316,23 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       </div>
       
       {/* 回到顶部按钮 */}
-      {showBackToTop && (
-        <Button
-          onClick={scrollToTop}
-          className={`
-            fixed bottom-8 right-8 z-50 w-12 h-12 rounded-full shadow-lg
-            bg-primary hover:bg-primary/90 text-primary-foreground
-            transition-all duration-300 ease-in-out
-            hover:scale-110 hover:shadow-xl
-            ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
-          `}
-          size="icon"
-          title={t('backToTop')}
-        >
-          <ArrowUp className="h-5 w-5" />
-        </Button>
-      )}
+      <Button
+        onClick={scrollToTop}
+        className={`
+          fixed bottom-8 right-8 z-50 w-12 h-12 rounded-full shadow-lg
+          bg-primary hover:bg-primary/90 text-primary-foreground
+          transition-all duration-300 ease-in-out
+          hover:scale-110 hover:shadow-xl
+          ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-30 translate-y-0'}
+        `}
+        style={{ 
+          display: showBackToTop || process.env.NODE_ENV === 'development' ? 'flex' : 'none' 
+        }}
+        size="icon"
+        title={t('backToTop')}
+      >
+        <ArrowUp className="h-5 w-5" />
+      </Button>
     </div>
   );
 };
