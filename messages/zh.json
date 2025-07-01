@@ -67,7 +67,8 @@
         "clearScrollPosition": "清除当前文件的滚动位置",
         "realtimeEnabled": "实时监控已启用",
         "realtimeConnecting": "连接中...",
-        "realtimeDisabled": "实时监控已禁用"
+        "realtimeDisabled": "实时监控已禁用",
+        "backToTop": "回到顶部"
     },
     "RealTime": {
         "connected": "已连接",

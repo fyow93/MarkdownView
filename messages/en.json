@@ -67,7 +67,8 @@
         "clearScrollPosition": "Clear current file scroll position",
         "realtimeEnabled": "Real-time monitoring enabled",
         "realtimeConnecting": "Connecting...",
-        "realtimeDisabled": "Real-time monitoring disabled"
+        "realtimeDisabled": "Real-time monitoring disabled",
+        "backToTop": "Back to Top"
     },
     "RealTime": {
         "connected": "Connected",
