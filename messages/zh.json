@@ -9,7 +9,12 @@
         "showToc": "显示目录",
         "menu": "菜单",
         "close": "关闭",
-        "changeDirectory": "更改目录"
+        "changeDirectory": "更改目录",
+        "closeTab": "关闭标签页",
+        "closeAllTabs": "关闭所有标签页",
+        "restoreTab": "恢复最近关闭的标签页",
+        "recentFiles": "最近打开的文件",
+        "dragToReorder": "拖拽以重新排序"
     },
     "Theme": {
         "toggleTheme": "切换主题",

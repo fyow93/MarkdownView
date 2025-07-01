@@ -20,7 +20,7 @@ export default function StagewiseToolbarWrapper() {
     const loadStagewiseToolbar = async () => {
       try {
         // 先尝试使用@stagewise-plugins/react（更基础的包）
-        const module = await import('@stagewise-plugins/react');
+        const module = await import('@stagewise-plugins/react') as any;
         if (module.StagewiseToolbar) {
           setStagewiseToolbar(() => module.StagewiseToolbar);
           console.log('Stagewise toolbar loaded successfully from @stagewise-plugins/react');
@@ -36,7 +36,7 @@ export default function StagewiseToolbarWrapper() {
         
         // 尝试其他导入方式
         try {
-          const fallbackModule = await import('@stagewise/toolbar-next');
+          const fallbackModule = await import('@stagewise/toolbar-next') as any;
           if (fallbackModule.StagewiseToolbar) {
             setStagewiseToolbar(() => fallbackModule.StagewiseToolbar);
             console.log('Stagewise toolbar loaded from fallback (@stagewise/toolbar-next)');
@@ -45,7 +45,7 @@ export default function StagewiseToolbarWrapper() {
           console.warn('All Stagewise toolbar imports failed:', fallbackErr);
           // 最后尝试@stagewise/toolbar
           try {
-            const lastResortModule = await import('@stagewise/toolbar');
+            const lastResortModule = await import('@stagewise/toolbar') as any;
             if (lastResortModule.StagewiseToolbar || lastResortModule.default) {
               setStagewiseToolbar(() => lastResortModule.StagewiseToolbar || lastResortModule.default);
               console.log('Stagewise toolbar loaded from last resort (@stagewise/toolbar)');

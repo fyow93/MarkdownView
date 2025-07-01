@@ -9,7 +9,12 @@
         "showToc": "Show TOC",
         "menu": "Menu",
         "close": "Close",
-        "changeDirectory": "Change Directory"
+        "changeDirectory": "Change Directory",
+        "closeTab": "Close Tab",
+        "closeAllTabs": "Close All Tabs",
+        "restoreTab": "Restore Recently Closed Tab",
+        "recentFiles": "Recent Files",
+        "dragToReorder": "Drag to reorder"
     },
     "Theme": {
         "toggleTheme": "Toggle Theme",

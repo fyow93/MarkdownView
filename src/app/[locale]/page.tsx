@@ -8,6 +8,7 @@ import { DirectorySelector } from '@/components/DirectorySelector';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import GitHubStar from '@/components/GitHubStar';
+import FileTabs from '@/components/FileTabs';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 
@@ -122,6 +123,12 @@ export default function Home() {
           </div>
         </div>
       </header>
+
+      {/* File Tabs */}
+      <FileTabs 
+        selectedFile={selectedFile}
+        onFileSelect={handleFileSelect}
+      />
 
       {/* Main Content */}
       <div className="flex-1">

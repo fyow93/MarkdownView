@@ -420,7 +420,9 @@ const contentCache = new Map<string, { content: string; toc: TocItem[]; lastModi
 const manageCacheSize = () => {
   if (contentCache.size > MAX_CACHE_SIZE) {
     const firstKey = contentCache.keys().next().value;
-    contentCache.delete(firstKey);
+    if (firstKey) {
+      contentCache.delete(firstKey);
+    }
   }
 };
 
@@ -573,7 +575,7 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ filePath, onFileSelect 
       const allHeadings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
       const foundById = Array.from(allHeadings).find(h => h.id === id);
       if (foundById) {
-        element = foundById;
+        element = foundById as HTMLElement;
       }
     }
     
