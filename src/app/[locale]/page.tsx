@@ -15,15 +15,57 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [showDirectorySelector, setShowDirectorySelector] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [currentDirectory, setCurrentDirectory] = useState<string>('');
+  const [isInitialized, setIsInitialized] = useState(false);
   const t = useTranslations('Navigation');
 
-  // 从localStorage恢复最后选中的文件
+  // 从localStorage恢复用户状态
   useEffect(() => {
-    const savedFile = localStorage.getItem('last-selected-file');
-    if (savedFile) {
-      setSelectedFile(savedFile);
-      console.log('📍 恢复最后选中的文件:', savedFile);
-    }
+    const restoreUserState = async () => {
+      try {
+        // 恢复保存的目录
+        const savedDirectory = localStorage.getItem('last-selected-directory');
+        if (savedDirectory) {
+          console.log('📁 恢复最后选择的目录:', savedDirectory);
+          // 尝试设置保存的目录
+          const response = await fetch(`/api/config/project-root`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectRoot: savedDirectory })
+          });
+          
+          if (response.ok) {
+            setCurrentDirectory(savedDirectory);
+            setRefreshKey(prev => prev + 1); // 触发文件树刷新
+            
+            // 恢复保存的文件（在目录设置成功后）
+            setTimeout(() => {
+              const savedFile = localStorage.getItem('last-selected-file');
+              if (savedFile) {
+                setSelectedFile(savedFile);
+                console.log('📄 恢复最后选中的文件:', savedFile);
+              }
+            }, 500);
+          } else {
+            console.warn('⚠️ 无法设置保存的目录，使用默认目录');
+            localStorage.removeItem('last-selected-directory');
+          }
+        } else {
+          // 没有保存的目录，仍然尝试恢复文件
+          const savedFile = localStorage.getItem('last-selected-file');
+          if (savedFile) {
+            setSelectedFile(savedFile);
+            console.log('📄 恢复最后选中的文件:', savedFile);
+          }
+        }
+      } catch (error) {
+        console.error('❌ 恢复用户状态失败:', error);
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+
+    restoreUserState();
   }, []);
 
   const handleFileSelect = (filePath: string) => {
@@ -35,11 +77,18 @@ export default function Home() {
 
   // 处理目录更改
   const handleDirectoryChange = (newPath: string) => {
-    // 刷新文件树和清空当前选中的文件
+    // 保存新目录到localStorage
+    localStorage.setItem('last-selected-directory', newPath);
+    setCurrentDirectory(newPath);
+    
+    // 刷新文件树
     setRefreshKey(prev => prev + 1);
+    
+    // 清空当前选中的文件（因为目录变了，之前的文件可能不存在了）
     setSelectedFile('');
     localStorage.removeItem('last-selected-file');
-    console.log('📁 目录已更改为:', newPath);
+    
+    console.log('📁 目录已更改并保存:', newPath);
   };
 
   return (

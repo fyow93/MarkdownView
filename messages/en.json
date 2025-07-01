@@ -44,7 +44,11 @@
         "back": "Back",
         "home": "Home",
         "directoryChanged": "Directory changed successfully",
-        "changeDirectoryFailed": "Failed to change directory"
+        "changeDirectoryFailed": "Failed to change directory",
+        "recentDirectories": "Recent Directories",
+        "applyDirectory": "Apply this directory directly",
+        "restoreState": "Restoring user state...",
+        "stateRestored": "User state restored"
     },
     "Markdown": {
         "loading": "Loading...",

@@ -42,8 +42,33 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
   const [manualPath, setManualPath] = useState<string>('');
   const [showManualInput, setShowManualInput] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [recentDirectories, setRecentDirectories] = useState<string[]>([]);
   const locale = useLocale();
   const t = useTranslations('FileTree');
+
+  // 加载最近使用的目录
+  const loadRecentDirectories = () => {
+    try {
+      const recent = localStorage.getItem('recent-directories');
+      if (recent) {
+        const directories = JSON.parse(recent);
+        setRecentDirectories(Array.isArray(directories) ? directories.slice(0, 5) : []);
+      }
+    } catch (error) {
+      console.warn('Failed to load recent directories:', error);
+    }
+  };
+
+  // 保存最近使用的目录
+  const saveRecentDirectory = (path: string) => {
+    try {
+      const recent = [...recentDirectories.filter(dir => dir !== path), path].slice(-5);
+      setRecentDirectories(recent);
+      localStorage.setItem('recent-directories', JSON.stringify(recent));
+    } catch (error) {
+      console.warn('Failed to save recent directory:', error);
+    }
+  };
 
   // 获取当前项目根目录
   const fetchCurrentDirectory = async () => {
@@ -103,6 +128,8 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
       const data = await response.json();
       
       if (response.ok) {
+        // 保存到最近使用的目录
+        saveRecentDirectory(path);
         onDirectorySelect(path);
         onClose();
       } else {
@@ -119,6 +146,7 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
   // 初始化时获取当前目录和根目录列表
   useEffect(() => {
     if (isOpen) {
+      loadRecentDirectories();
       fetchCurrentDirectory();
       browseDirectory();
     }
@@ -147,6 +175,45 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
               {manualPath || t('loading')}
             </div>
           </div>
+
+          {/* 最近使用的目录 */}
+          {recentDirectories.length > 0 && (
+            <div className="mb-4">
+              <div className="text-sm text-muted-foreground mb-2">{t('recentDirectories')}</div>
+              <div className="space-y-1">
+                {recentDirectories.slice().reverse().map((dir, index) => (
+                  <div
+                    key={dir}
+                    className="flex items-center gap-2 p-2 bg-muted/30 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setManualPath(dir);
+                      if (!showManualInput) {
+                        browseDirectory(dir);
+                      }
+                    }}
+                  >
+                    <Folder className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                    <span className="text-sm font-mono truncate flex-1" title={dir}>
+                      {dir}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        applyDirectory(dir);
+                      }}
+                      disabled={applying}
+                      title={t('applyDirectory')}
+                    >
+                      <Check className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 切换面板 */}
           <div className="flex gap-2 mb-4">

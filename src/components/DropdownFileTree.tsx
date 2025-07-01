@@ -84,6 +84,12 @@ export const DropdownFileTree: React.FC<{
       } else {
         newSet.add(path);
       }
+      // 保存展开状态到 localStorage
+      try {
+        localStorage.setItem('filetree-expanded-dirs', JSON.stringify(Array.from(newSet)));
+      } catch (error) {
+        console.warn('Failed to save expanded directories:', error);
+      }
       return newSet;
     });
   };
@@ -153,17 +159,39 @@ export const DropdownFileTree: React.FC<{
     return count;
   };
 
+  // 从 localStorage 恢复展开状态
+  const loadExpandedDirs = () => {
+    try {
+      const saved = localStorage.getItem('filetree-expanded-dirs');
+      if (saved) {
+        const dirs = JSON.parse(saved);
+        if (Array.isArray(dirs)) {
+          setExpandedDirs(new Set(dirs));
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load expanded directories:', error);
+    }
+  };
+
   // 初始化和依赖项变化时重新获取
   useEffect(() => {
     fetchCurrentProjectRoot();
     fetchFileTree();
+    
+    // 只在初始加载时恢复展开状态，目录切换时清空
+    if (refreshTrigger === 0) {
+      loadExpandedDirs();
+    }
   }, [refreshTrigger]);
 
-  // 确保在挂载时清空展开状态，避免旧状态影响新目录
+  // 确保在目录切换时清空展开状态，避免旧状态影响新目录
   useEffect(() => {
-    if (refreshTrigger !== undefined) {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
       setExpandedDirs(new Set());
       setIsOpen(false);
+      // 清空保存的展开状态
+      localStorage.removeItem('filetree-expanded-dirs');
     }
   }, [refreshTrigger]);
 

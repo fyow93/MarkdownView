@@ -44,7 +44,11 @@
         "back": "返回",
         "home": "主目录",
         "directoryChanged": "目录更改成功",
-        "changeDirectoryFailed": "更改目录失败"
+        "changeDirectoryFailed": "更改目录失败",
+        "recentDirectories": "最近使用的目录",
+        "applyDirectory": "直接应用此目录",
+        "restoreState": "正在恢复用户状态...",
+        "stateRestored": "用户状态已恢复"
     },
     "Markdown": {
         "loading": "加载中...",
