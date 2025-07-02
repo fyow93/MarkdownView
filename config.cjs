@@ -1,8 +1,5 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
-import os from 'os';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const path = require('path');
+const os = require('os');
 
 // 运行时配置管理器
 class ConfigManager {
@@ -70,4 +67,4 @@ const config = new Proxy(configManager, {
   }
 });
 
-export default config; 
+module.exports = config;

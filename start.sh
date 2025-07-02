@@ -14,7 +14,8 @@ fi
 # 显示当前配置
 echo "📋 当前配置:"
 echo "  项目路径: ${MARKDOWN_PROJECT_ROOT:-~/project-wiki}"
-echo "  端口: ${PORT:-3000}"
+echo "  前端端口: 8080"
+echo "  服务端口: ${PORT:-8000}"
 echo "  主机: ${HOST:-localhost}"
 
 # 检查Node.js版本
@@ -38,12 +39,15 @@ fi
 
 # 启动开发服务器
 if [ "$1" = "prod" ]; then
-    echo "🌟 启动生产服务器..."
-    npm run build && npm start
+    echo "🌟 启动生产服务器 (前端:8080 + Socket.IO:8000)..."
+    npm run build && npm run start:all
 elif [ "$1" = "socket" ]; then
-    echo "🔧 启动开发服务器 (带Socket.IO实时监控)..."
+    echo "🔧 启动Socket.IO服务器 (端口:8000)..."
     npm run dev:socket
+elif [ "$1" = "all" ]; then
+    echo "🔧 启动完整开发服务器 (前端:8080 + Socket.IO:8000)..."
+    npm run dev:all
 else
-    echo "🔧 启动开发服务器 (轮询实时监控，优化版)..."
+    echo "🔧 启动前端开发服务器 (端口:8080)..."
     npm run dev
 fi 

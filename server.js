@@ -1,48 +1,37 @@
 const { createServer } = require('http');
-const { parse } = require('url');
-const next = require('next');
 const { Server } = require('socket.io');
 const chokidar = require('chokidar');
 const fs = require('fs');
 const path = require('path');
-const config = require('./config');
+const config = require('./config.cjs');
 
-const dev = process.env.NODE_ENV !== 'production';
 const hostname = config.SERVER.HOST;
 const port = config.SERVER.PORT;
 
 // 从配置文件获取项目根目录
 const PROJECT_ROOT = config.PROJECT_ROOT;
 
-// 当在生产环境下，next() 可能是 Promise
-const app = next({ 
-  dev, 
-  hostname, 
-  port,
-  turbo: false, // 禁用 Turbopack 避免兼容性问题
-  customServer: true
+// 创建HTTP服务器
+const httpServer = createServer((req, res) => {
+  // 简单的健康检查端点
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('OK');
+    return;
+  }
+  
+  // 默认响应
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ message: 'Socket.IO server is running' }));
 });
-const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
-  const httpServer = createServer(async (req, res) => {
-    try {
-      const parsedUrl = parse(req.url, true);
-      await handle(req, res, parsedUrl);
-    } catch (err) {
-      console.error('Error occurred handling', req.url, err);
-      res.statusCode = 500;
-      res.end('internal server error');
-    }
-  });
-
-  // 创建Socket.IO服务器
-  const io = new Server(httpServer, {
-    cors: {
-      origin: `http://${hostname}:${port}`,
-      methods: ['GET', 'POST']
-    }
-  });
+// 创建Socket.IO服务器
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:8080",
+    methods: ['GET', 'POST']
+  }
+});
 
   // 文件监控器
   let watcher = null;
@@ -121,7 +110,8 @@ app.prepare().then(() => {
       process.exit(1);
     })
     .listen(port, () => {
-      console.log(`🚀 Next.js + Socket.IO 服务器运行在 http://${hostname}:${port}`);
+      console.log(`🚀 Socket.IO 服务器运行在 http://${hostname}:${port}`);
+      console.log(`📋 支持CORS来源: http://localhost:8080`);
     });
 
   // 优雅关闭
@@ -134,5 +124,4 @@ app.prepare().then(() => {
       console.log('✅ 服务器已关闭');
       process.exit(0);
     });
-  });
-}); 
+  }); 
