@@ -62,3 +62,7 @@ frontend-restart.log
 # OS
 .DS_Store
 Thumbs.db
+
+.github
+scripts
+AGENTS.md
