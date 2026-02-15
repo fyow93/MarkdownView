@@ -16,7 +16,6 @@ class ConfigManager {
   setProjectRoot(newPath) {
     if (typeof newPath === 'string' && newPath.trim()) {
       this._projectRoot = path.resolve(newPath);
-      console.log('Project root changed to:', this._projectRoot);
       return true;
     }
     return false;

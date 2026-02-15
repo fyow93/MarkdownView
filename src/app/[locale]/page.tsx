@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import MarkdownViewer from '@/components/MarkdownViewer';
 import { DropdownFileTree } from '@/components/DropdownFileTree';
@@ -9,16 +9,33 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import GitHubStar from '@/components/GitHubStar';
 import FileTabs from '@/components/FileTabs';
+import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
 import { Button } from '@/components/ui/button';
-import { Settings } from 'lucide-react';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { Settings, HelpCircle } from 'lucide-react';
+import { useSearch } from '@/contexts/SearchContext';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [showDirectorySelector, setShowDirectorySelector] = useState(false);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [currentDirectory, setCurrentDirectory] = useState<string>('');
-  const [isInitialized, setIsInitialized] = useState(false);
   const t = useTranslations('Navigation');
+  const { setOnFileSelect } = useSearch();
+
+  // Handle search result file selection - loads file via API
+  const handleSearchResultSelect = useCallback((sessionId: string, relativePath: string) => {
+    // Construct the API path for the session file
+    const apiPath = `/api/copilot-sessions/file/${sessionId}/${relativePath}`;
+    setSelectedFile(apiPath);
+    localStorage.setItem('last-selected-file', apiPath);
+  }, []);
+
+  // Register the search result handler
+  useEffect(() => {
+    setOnFileSelect(handleSearchResultSelect);
+    return () => setOnFileSelect(null);
+  }, [setOnFileSelect, handleSearchResultSelect]);
 
   // 从localStorage恢复用户状态
   useEffect(() => {
@@ -27,7 +44,6 @@ export default function Home() {
         // 恢复保存的目录
         const savedDirectory = localStorage.getItem('last-selected-directory');
         if (savedDirectory) {
-          console.log('📁 恢复最后选择的目录:', savedDirectory);
           // 尝试设置保存的目录
           const response = await fetch(`/api/config/project-root`, {
             method: 'POST',
@@ -36,7 +52,6 @@ export default function Home() {
           });
           
           if (response.ok) {
-            setCurrentDirectory(savedDirectory);
             setRefreshKey(prev => prev + 1); // 触发文件树刷新
             
             // 恢复保存的文件（在目录设置成功后）
@@ -44,11 +59,10 @@ export default function Home() {
               const savedFile = localStorage.getItem('last-selected-file');
               if (savedFile) {
                 setSelectedFile(savedFile);
-                console.log('📄 恢复最后选中的文件:', savedFile);
               }
             }, 500);
           } else {
-            console.warn('⚠️ 无法设置保存的目录，使用默认目录');
+            // 无法设置保存的目录，使用默认目录
             localStorage.removeItem('last-selected-directory');
           }
         } else {
@@ -56,13 +70,10 @@ export default function Home() {
           const savedFile = localStorage.getItem('last-selected-file');
           if (savedFile) {
             setSelectedFile(savedFile);
-            console.log('📄 恢复最后选中的文件:', savedFile);
           }
         }
-      } catch (error) {
-        console.error('❌ 恢复用户状态失败:', error);
-      } finally {
-        setIsInitialized(true);
+      } catch {
+        // 恢复用户状态失败，静默处理
       }
     };
 
@@ -73,14 +84,12 @@ export default function Home() {
     setSelectedFile(filePath);
     // 保存最后选中的文件
     localStorage.setItem('last-selected-file', filePath);
-    console.log('💾 保存最后选中的文件:', filePath);
   };
 
   // 处理目录更改
   const handleDirectoryChange = (newPath: string) => {
     // 保存新目录到localStorage
     localStorage.setItem('last-selected-directory', newPath);
-    setCurrentDirectory(newPath);
     
     // 刷新文件树
     setRefreshKey(prev => prev + 1);
@@ -88,9 +97,12 @@ export default function Home() {
     // 清空当前选中的文件（因为目录变了，之前的文件可能不存在了）
     setSelectedFile('');
     localStorage.removeItem('last-selected-file');
-    
-    console.log('📁 目录已更改并保存:', newPath);
   };
+
+  useKeyboardShortcuts({
+    enabled: true,
+    onShowHelp: () => setShowKeyboardHelp(true),
+  });
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -116,11 +128,21 @@ export default function Home() {
               refreshTrigger={refreshKey}
             />
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <LanguageToggle />
-            <GitHubStar repoUrl="https://github.com/fyow93/MarkdownView" />
-          </div>
+           <div className="flex items-center gap-2">
+             <Button
+               variant="ghost"
+               size="sm"
+               onClick={() => setShowKeyboardHelp(true)}
+               title="Keyboard shortcuts (? or Ctrl+/)"
+               className="gap-2"
+             >
+               <HelpCircle className="h-4 w-4" />
+               <span className="sr-only">Help</span>
+             </Button>
+             <ThemeToggle />
+             <LanguageToggle />
+             <GitHubStar repoUrl="https://github.com/fyow93/MarkdownView" />
+           </div>
         </div>
       </header>
 
@@ -138,12 +160,18 @@ export default function Home() {
         />
       </div>
 
-      {/* 目录选择器 */}
-      <DirectorySelector
-        isOpen={showDirectorySelector}
-        onClose={() => setShowDirectorySelector(false)}
-        onDirectorySelect={handleDirectoryChange}
-      />
-    </div>
-  );
-} 
+       {/* 目录选择器 */}
+       <DirectorySelector
+         isOpen={showDirectorySelector}
+         onClose={() => setShowDirectorySelector(false)}
+         onDirectorySelect={handleDirectoryChange}
+       />
+
+       {/* 键盘快捷键帮助 */}
+       <KeyboardShortcutsHelp
+         open={showKeyboardHelp}
+         onOpenChange={setShowKeyboardHelp}
+       />
+     </div>
+   );
+ } 

@@ -1,15 +1,37 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
+import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CONFIG_FILE = path.join(__dirname, '.project-root.json');
 
-// 运行时配置管理器
 class ConfigManager {
   constructor() {
-    // 默认项目根路径设置为用户文档目录，不再依赖环境变量
-    // 用户需要通过UI界面选择实际的项目目录
-    this._projectRoot = path.join(os.homedir(), 'Documents');
+    this._projectRoot = this._loadProjectRoot();
+  }
+
+  _loadProjectRoot() {
+    try {
+      if (fs.existsSync(CONFIG_FILE)) {
+        const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+        if (data.projectRoot && fs.existsSync(data.projectRoot)) {
+          return data.projectRoot;
+        }
+      }
+    } catch {
+      // Fall through to default
+    }
+    return path.join(os.homedir(), 'Documents');
+  }
+
+  _saveProjectRoot(projectRoot) {
+    try {
+      fs.writeFileSync(CONFIG_FILE, JSON.stringify({ projectRoot }, null, 2));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   get PROJECT_ROOT() {
@@ -19,7 +41,7 @@ class ConfigManager {
   setProjectRoot(newPath) {
     if (typeof newPath === 'string' && newPath.trim()) {
       this._projectRoot = path.resolve(newPath);
-      console.log('Project root changed to:', this._projectRoot);
+      this._saveProjectRoot(this._projectRoot);
       return true;
     }
     return false;
@@ -38,7 +60,7 @@ class ConfigManager {
 
   get WATCH() {
     return {
-      POLL_INTERVAL: parseInt(process.env.POLL_INTERVAL) || 3000, // 轮询间隔(毫秒)
+      POLL_INTERVAL: parseInt(process.env.POLL_INTERVAL) || 3000,
       IGNORED_PATTERNS: [
         '**/node_modules/**',
         '**/.git/**',
@@ -52,15 +74,13 @@ class ConfigManager {
   get FILE_TYPES() {
     return {
       MARKDOWN_EXTENSIONS: ['.md', '.markdown', '.mdown', '.mkdn', '.mkd'],
-      MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+      MAX_FILE_SIZE: 10 * 1024 * 1024,
     };
   }
 }
 
-// 创建单例实例
 const configManager = new ConfigManager();
 
-// 兼容性：导出对象，保持现有代码正常工作
 const config = new Proxy(configManager, {
   get(target, prop) {
     if (typeof target[prop] === 'function') {
@@ -70,4 +90,4 @@ const config = new Proxy(configManager, {
   }
 });
 
-export default config; 
+export default config;

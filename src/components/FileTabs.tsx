@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, FileText, Code, Image, Settings, Database, Zap, XCircle, RotateCcw } from 'lucide-react';
+import { X, FileText, Code, Image as ImageIcon, Settings, Database, Zap, XCircle, RotateCcw } from 'lucide-react';
 
 interface FileTab {
   path: string;
@@ -17,7 +17,7 @@ interface FileTabsProps {
   onFileSelect: (filePath: string) => void;
 }
 
-const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
+const FileTabs: React.FC<FileTabsProps> = React.memo(({ selectedFile, onFileSelect }) => {
   const [tabs, setTabs] = useState<FileTab[]>([]);
   const [recentlyClosedTabs, setRecentlyClosedTabs] = useState<FileTab[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -25,13 +25,11 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
   const [isDragging, setIsDragging] = useState(false);
   const t = useTranslations('Navigation');
 
-  // 切换到指定标签页
-  const switchToTab = (path: string) => {
+  const switchToTab = useCallback((path: string) => {
     onFileSelect(path);
-  };
+  }, [onFileSelect]);
 
-  // 关闭标签页
-  const closeTab = (pathToClose: string, e: React.MouseEvent) => {
+  const closeTab = useCallback((pathToClose: string, e: React.MouseEvent) => {
     e.stopPropagation();
     
     setTabs(prevTabs => {
@@ -60,35 +58,58 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
       // 保存到localStorage
       try {
         localStorage.setItem('recent-file-tabs', JSON.stringify(newTabs));
-      } catch (error) {
-        console.error('Failed to save recent tabs:', error);
+      } catch {
+        // Silently handle save failure
       }
       
       return newTabs;
     });
-  };
+  }, [onFileSelect]);
 
-  // 恢复最近关闭的标签页
-  const restoreRecentTab = () => {
+  const restoreRecentTab = useCallback(() => {
     if (recentlyClosedTabs.length > 0) {
       const tabToRestore = recentlyClosedTabs[0];
       setRecentlyClosedTabs(prev => prev.slice(1));
       onFileSelect(tabToRestore.path);
     }
-  };
+  }, [recentlyClosedTabs, onFileSelect]);
 
-  // 清除所有标签页
-  const closeAllTabs = () => {
+  const tabsRef = useRef<FileTab[]>(tabs);
+  const recentlyClosedTabsRef = useRef<FileTab[]>(recentlyClosedTabs);
+  const closeTabRef = useRef(closeTab);
+  const switchToTabRef = useRef(switchToTab);
+  const restoreRecentTabRef = useRef(restoreRecentTab);
+
+  useEffect(() => {
+    tabsRef.current = tabs;
+  }, [tabs]);
+
+  useEffect(() => {
+    recentlyClosedTabsRef.current = recentlyClosedTabs;
+  }, [recentlyClosedTabs]);
+
+  useEffect(() => {
+    closeTabRef.current = closeTab;
+  }, [closeTab]);
+
+  useEffect(() => {
+    switchToTabRef.current = switchToTab;
+  }, [switchToTab]);
+
+  useEffect(() => {
+    restoreRecentTabRef.current = restoreRecentTab;
+  }, [restoreRecentTab]);
+
+  const closeAllTabs = useCallback(() => {
     setTabs([]);
     try {
       localStorage.removeItem('recent-file-tabs');
-    } catch (error) {
-      console.error('Failed to clear recent tabs:', error);
+    } catch {
+      // Silently handle clear failure
     }
-  };
+  }, []);
 
-  // 拖拽处理函数
-  const handleDragStart = (e: React.DragEvent, index: number) => {
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
@@ -98,9 +119,9 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '0.5';
     }
-  };
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     
@@ -114,13 +135,13 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
       const insertIndex = mouseX < elementCenter ? index : index + 1;
       setDragOverIndex(insertIndex);
     }
-  };
+  }, [draggedIndex]);
 
-  const handleDragLeave = () => {
+  const handleDragLeave = useCallback(() => {
     setDragOverIndex(null);
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+  const handleDrop = useCallback((e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
     
     if (draggedIndex === null) {
@@ -156,15 +177,15 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
       // 保存到localStorage
       try {
         localStorage.setItem('recent-file-tabs', JSON.stringify(newTabs));
-      } catch (error) {
-        console.error('Failed to save reordered tabs:', error);
+      } catch {
+        // Silently handle save failure
       }
       
       return newTabs;
     });
-  };
+  }, [draggedIndex, dragOverIndex]);
 
-  const handleDragEnd = (e: React.DragEvent) => {
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
     // 恢复透明度
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '1';
@@ -173,116 +194,15 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
     setDraggedIndex(null);
     setDragOverIndex(null);
     setIsDragging(false);
-  };
+  }, []);
 
-  // 防止拖拽时触发点击事件
-  const handleTabClick = (path: string, e: React.MouseEvent) => {
+  const handleTabClick = useCallback((path: string) => {
     if (!isDragging) {
       switchToTab(path);
     }
-  };
+  }, [isDragging, switchToTab]);
 
-  // 从localStorage加载最近打开的文件
-  useEffect(() => {
-    try {
-      const savedTabs = localStorage.getItem('recent-file-tabs');
-      if (savedTabs) {
-        const parsedTabs = JSON.parse(savedTabs);
-        setTabs(parsedTabs);
-      }
-    } catch (error) {
-      console.error('Failed to load recent tabs:', error);
-    }
-  }, []);
-
-  // 键盘快捷键支持
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl + W: 关闭当前标签页
-      if (e.ctrlKey && e.key === 'w' && tabs.length > 0) {
-        e.preventDefault();
-        const activeTab = tabs.find(tab => tab.isActive);
-        if (activeTab) {
-          const fakeEvent = { stopPropagation: () => {} } as React.MouseEvent;
-          closeTab(activeTab.path, fakeEvent);
-        }
-      }
-      
-      // Ctrl + Tab: 切换到下一个标签页
-      if (e.ctrlKey && e.key === 'Tab' && tabs.length > 1) {
-        e.preventDefault();
-        const activeIndex = tabs.findIndex(tab => tab.isActive);
-        const nextIndex = (activeIndex + 1) % tabs.length;
-        switchToTab(tabs[nextIndex].path);
-      }
-      
-      // Ctrl + Shift + Tab: 切换到上一个标签页
-      if (e.ctrlKey && e.shiftKey && e.key === 'Tab' && tabs.length > 1) {
-        e.preventDefault();
-        const activeIndex = tabs.findIndex(tab => tab.isActive);
-        const prevIndex = activeIndex === 0 ? tabs.length - 1 : activeIndex - 1;
-        switchToTab(tabs[prevIndex].path);
-      }
-      
-      // Ctrl + Shift + T: 恢复最近关闭的标签页
-      if (e.ctrlKey && e.shiftKey && e.key === 'T' && recentlyClosedTabs.length > 0) {
-        e.preventDefault();
-        restoreRecentTab();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [tabs, recentlyClosedTabs]);
-
-  // 当选中文件变化时，更新标签页
-  useEffect(() => {
-    if (!selectedFile) return;
-
-    const fileName = selectedFile.split('/').pop() || selectedFile;
-    
-    setTabs(prevTabs => {
-      // 检查文件是否已经在标签页中
-      const existingTabIndex = prevTabs.findIndex(tab => tab.path === selectedFile);
-      
-      let newTabs: FileTab[];
-      
-      if (existingTabIndex !== -1) {
-        // 如果已存在，只更新激活状态
-        newTabs = prevTabs.map((tab, index) => ({
-          ...tab,
-          isActive: index === existingTabIndex
-        }));
-      } else {
-        // 如果不存在，添加新标签页
-        newTabs = [
-          ...prevTabs.map(tab => ({ ...tab, isActive: false })),
-          {
-            path: selectedFile,
-            name: fileName,
-            isActive: true
-          }
-        ];
-        
-        // 限制最多显示10个标签页
-        if (newTabs.length > 10) {
-          newTabs = newTabs.slice(-10);
-        }
-      }
-      
-      // 保存到localStorage
-      try {
-        localStorage.setItem('recent-file-tabs', JSON.stringify(newTabs));
-      } catch (error) {
-        console.error('Failed to save recent tabs:', error);
-      }
-      
-      return newTabs;
-    });
-  }, [selectedFile]);
-
-  // 获取文件类型图标
-  const getFileIcon = (fileName: string) => {
+  const getFileIcon = useCallback((fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
     
     switch (ext) {
@@ -313,7 +233,7 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
       case 'gif':
       case 'svg':
       case 'webp':
-        return <Image className="h-3 w-3 text-purple-500" />;
+        return <ImageIcon className="h-3 w-3 text-purple-500" />;
       case 'sql':
       case 'db':
         return <Database className="h-3 w-3 text-cyan-500" />;
@@ -325,7 +245,97 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
       default:
         return <FileText className="h-3 w-3 text-gray-500" />;
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const savedTabs = localStorage.getItem('recent-file-tabs');
+      if (savedTabs) {
+        const parsedTabs = JSON.parse(savedTabs);
+        setTabs(parsedTabs);
+      }
+    } catch {
+      // Silently handle load failure
+    }
+  }, []);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    const currentTabs = tabsRef.current;
+    const currentRecentTabs = recentlyClosedTabsRef.current;
+
+    if (e.ctrlKey && e.key === 'w' && currentTabs.length > 0) {
+      e.preventDefault();
+      const activeTab = currentTabs.find(tab => tab.isActive);
+      if (activeTab) {
+        const fakeEvent = { stopPropagation: () => {} } as React.MouseEvent;
+        closeTabRef.current(activeTab.path, fakeEvent);
+      }
+    }
+    
+    if (e.ctrlKey && e.key === 'Tab' && currentTabs.length > 1) {
+      e.preventDefault();
+      const activeIndex = currentTabs.findIndex(tab => tab.isActive);
+      const nextIndex = (activeIndex + 1) % currentTabs.length;
+      switchToTabRef.current(currentTabs[nextIndex].path);
+    }
+    
+    if (e.ctrlKey && e.shiftKey && e.key === 'Tab' && currentTabs.length > 1) {
+      e.preventDefault();
+      const activeIndex = currentTabs.findIndex(tab => tab.isActive);
+      const prevIndex = activeIndex === 0 ? currentTabs.length - 1 : activeIndex - 1;
+      switchToTabRef.current(currentTabs[prevIndex].path);
+    }
+    
+    if (e.ctrlKey && e.shiftKey && e.key === 'T' && currentRecentTabs.length > 0) {
+      e.preventDefault();
+      restoreRecentTabRef.current();
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  useEffect(() => {
+    if (!selectedFile) return;
+
+    const fileName = selectedFile.split('/').pop() || selectedFile;
+    
+    setTabs(prevTabs => {
+      const existingTabIndex = prevTabs.findIndex(tab => tab.path === selectedFile);
+      
+      let newTabs: FileTab[];
+      
+      if (existingTabIndex !== -1) {
+        newTabs = prevTabs.map((tab, index) => ({
+          ...tab,
+          isActive: index === existingTabIndex
+        }));
+      } else {
+        newTabs = [
+          ...prevTabs.map(tab => ({ ...tab, isActive: false })),
+          {
+            path: selectedFile,
+            name: fileName,
+            isActive: true
+          }
+        ];
+        
+        if (newTabs.length > 10) {
+          newTabs = newTabs.slice(-10);
+        }
+      }
+      
+      try {
+        localStorage.setItem('recent-file-tabs', JSON.stringify(newTabs));
+      } catch {
+        // Silently handle save failure
+      }
+      
+      return newTabs;
+    });
+  }, [selectedFile]);
 
   if (tabs.length === 0) {
     return null;
@@ -334,7 +344,7 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
   return (
     <div className="border-b bg-card/95 backdrop-blur-sm">
       <ScrollArea className="w-full">
-        <div className="flex items-center gap-0.5 px-4 py-1.5 min-h-[2.5rem] relative">
+        <div className="flex items-center gap-0.5 px-4 py-1.5 min-h-10 relative">
           {tabs.map((tab, index) => (
             <React.Fragment key={tab.path}>
               {/* 插入指示器 */}
@@ -350,7 +360,7 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
               onDragEnd={handleDragEnd}
               className={`
                 group relative flex items-center gap-2 px-3 py-1.5 cursor-pointer
-                transition-all duration-200 min-w-0 max-w-[200px] select-none
+                transition-all duration-200 min-w-0 max-w-50 select-none
                 ${tab.isActive 
                   ? 'bg-background/95 text-foreground shadow-sm border-b-2 border-primary' 
                   : 'bg-transparent hover:bg-accent/50 text-muted-foreground hover:text-foreground'
@@ -361,7 +371,7 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
                 ${isDragging && draggedIndex !== index ? 'hover:bg-primary/20 transition-transform hover:scale-105' : ''}
                 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
               `}
-              onClick={(e) => handleTabClick(tab.path, e)}
+              onClick={() => handleTabClick(tab.path)}
               title={`${tab.path} - ${t('dragToReorder')}`}
             >
               {getFileIcon(tab.name)}
@@ -371,7 +381,7 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-4 w-4 p-0 hover:bg-destructive/20 hover:text-destructive rounded-full opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity ml-auto"
+                className="h-4 w-4 p-0 hover:bg-destructive/20 hover:text-destructive rounded-full opacity-0 group-hover:opacity-70 hover:opacity-100! transition-opacity ml-auto"
                 onClick={(e) => closeTab(tab.path, e)}
                 title={t('closeTab')}
                 onMouseDown={(e) => e.stopPropagation()} // 防止拖拽时触发关闭
@@ -416,6 +426,8 @@ const FileTabs: React.FC<FileTabsProps> = ({ selectedFile, onFileSelect }) => {
       </ScrollArea>
     </div>
   );
-};
+});
+
+FileTabs.displayName = 'FileTabs';
 
 export default FileTabs; 

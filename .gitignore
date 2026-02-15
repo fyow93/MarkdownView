@@ -52,6 +52,7 @@ backup-original/
 server.log
 frontend.log
 frontend-restart.log
+.project-root.json
 
 # editor
 .vscode/

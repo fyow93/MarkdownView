@@ -32,7 +32,6 @@ export async function GET(
   // 检查是否是示例文件请求或项目根目录不存在
   if (requestedFile === 'example.md' || !fs.existsSync(PROJECT_ROOT)) {
     filePath = path.resolve('./example.md');
-    console.log('Using example file:', filePath);
   } else {
     // 安全检查
     if (!isValidPath(requestedFile, PROJECT_ROOT)) {
@@ -40,13 +39,10 @@ export async function GET(
     }
 
     filePath = path.join(PROJECT_ROOT, requestedFile);
-    console.log('Requested file:', requestedFile);
-    console.log('Full path:', filePath);
   }
 
   // 检查文件是否存在
   if (!fs.existsSync(filePath)) {
-    console.log('File not found:', filePath);
     return NextResponse.json({ error: '文件未找到' }, { status: 404 });
   }
 
@@ -64,10 +60,8 @@ export async function GET(
       size: stats.size
     };
 
-    console.log(`Successfully served file: ${requestedFile} (${stats.size} bytes)`);
     return NextResponse.json(response);
-  } catch (error) {
-    console.error('Error reading file:', error);
+  } catch {
     return NextResponse.json({ error: '读取文件失败' }, { status: 500 });
   }
 } 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,55 +43,54 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
   const [showManualInput, setShowManualInput] = useState(false);
   const [applying, setApplying] = useState(false);
   const [recentDirectories, setRecentDirectories] = useState<string[]>([]);
-  const locale = useLocale();
+  // useLocale is kept for potential future i18n needs
+  useLocale();
   const t = useTranslations('FileTree');
 
-  // 加载最近使用的目录
-  const loadRecentDirectories = () => {
+  const loadRecentDirectories = useCallback(() => {
     try {
       const recent = localStorage.getItem('recent-directories');
       if (recent) {
         const directories = JSON.parse(recent);
         setRecentDirectories(Array.isArray(directories) ? directories.slice(0, 5) : []);
       }
-    } catch (error) {
-      console.warn('Failed to load recent directories:', error);
+    } catch {
+      // Silently handle load failure
     }
-  };
+  }, []);
 
-  // 保存最近使用的目录
-  const saveRecentDirectory = (path: string) => {
-    try {
-      const recent = [...recentDirectories.filter(dir => dir !== path), path].slice(-5);
-      setRecentDirectories(recent);
-      localStorage.setItem('recent-directories', JSON.stringify(recent));
-    } catch (error) {
-      console.warn('Failed to save recent directory:', error);
-    }
-  };
+  const saveRecentDirectory = useCallback((path: string) => {
+    setRecentDirectories(prev => {
+      const recent = [...prev.filter(dir => dir !== path), path].slice(-5);
+      try {
+        localStorage.setItem('recent-directories', JSON.stringify(recent));
+      } catch {
+        // Silently handle save failure
+      }
+      return recent;
+    });
+  }, []);
 
-  // 获取当前项目根目录
-  const fetchCurrentDirectory = async () => {
+  const fetchCurrentDirectory = useCallback(async () => {
     try {
-      const response = await fetch(`/${locale}/api/config/project-root`);
+      const response = await fetch(`/api/config/project-root`);
       if (response.ok) {
         const data = await response.json();
         setManualPath(data.projectRoot || '');
       }
-    } catch (error) {
-      console.error('Failed to fetch current directory:', error);
+    } catch {
+      // Silently handle fetch failure
     }
-  };
+  }, []);
 
-  // 浏览目录
-  const browseDirectory = async (path?: string) => {
+  const browseDirectory = useCallback(async (path?: string) => {
     setLoading(true);
     setError(null);
     
     try {
       const url = path 
-        ? `/${locale}/api/directories?path=${encodeURIComponent(path)}`
-        : `/${locale}/api/directories`;
+        ? `/api/directories?path=${encodeURIComponent(path)}`
+        : `/api/directories`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -103,21 +102,20 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
       } else {
         setError(data.error || t('error'));
       }
-    } catch (err) {
+    } catch {
       setError(t('error'));
-      console.error('Failed to browse directory:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   // 应用新目录
-  const applyDirectory = async (path: string) => {
+  const applyDirectory = useCallback(async (path: string) => {
     setApplying(true);
     setError(null);
     
     try {
-      const response = await fetch(`/${locale}/api/config/project-root`, {
+      const response = await fetch(`/api/config/project-root`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -128,36 +126,34 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
       const data = await response.json();
       
       if (response.ok) {
-        // 保存到最近使用的目录
         saveRecentDirectory(path);
         onDirectorySelect(path);
         onClose();
       } else {
         setError(data.error || t('changeDirectoryFailed'));
       }
-    } catch (err) {
+    } catch {
       setError(t('changeDirectoryFailed'));
-      console.error('Failed to apply directory:', err);
     } finally {
       setApplying(false);
     }
-  };
+  }, [saveRecentDirectory, onDirectorySelect, onClose, t]);
 
-  // 初始化时获取当前目录和根目录列表
-  useEffect(() => {
-    if (isOpen) {
-      loadRecentDirectories();
-      fetchCurrentDirectory();
-      browseDirectory();
-    }
-  }, [isOpen]);
+   // 初始化时获取当前目录和根目录列表
+   useEffect(() => {
+     if (isOpen) {
+       loadRecentDirectories();
+       fetchCurrentDirectory();
+       browseDirectory();
+     }
+   }, [isOpen, loadRecentDirectories, fetchCurrentDirectory, browseDirectory]);
 
   if (!isOpen) return null;
 
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} />
-      <Card className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] max-h-[80vh] z-50 bg-background border-primary/20 shadow-xl">
+      <Card className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-150 max-h-[80vh] z-50 bg-background border-primary/20 shadow-xl">
         <CardHeader className="pb-3 border-b">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">{t('selectDirectory')}</CardTitle>
@@ -181,7 +177,7 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
             <div className="mb-4">
               <div className="text-sm text-muted-foreground mb-2">{t('recentDirectories')}</div>
               <div className="space-y-1">
-                {recentDirectories.slice().reverse().map((dir, index) => (
+                {recentDirectories.slice().reverse().map((dir) => (
                   <div
                     key={dir}
                     className="flex items-center gap-2 p-2 bg-muted/30 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
@@ -192,7 +188,7 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
                       }
                     }}
                   >
-                    <Folder className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                    <Folder className="h-4 w-4 text-blue-500 shrink-0" />
                     <span className="text-sm font-mono truncate flex-1" title={dir}>
                       {dir}
                     </span>
@@ -289,7 +285,7 @@ export const DirectorySelector: React.FC<DirectorySelectorProps> = ({
                          {crumb.name}
                        </button>
                        {index < breadcrumbs.length - 1 && (
-                         <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                         <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
                        )}
                      </React.Fragment>
                    ))}

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 // import { Button } from '@/components/ui/button';
 import { ChevronRight, ChevronDown, File, Folder, AlertCircle } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface FileNode {
   name: string;
@@ -28,55 +29,54 @@ const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedFile }) => {
   const locale = useLocale();
   const t = useTranslations('FileTree');
 
-  useEffect(() => {
-    const fetchFileTree = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch(`/${locale}/api/filetree`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setTree(data);
-      } catch (err) {
-        console.error('Failed to fetch file tree:', err);
-        setError(err instanceof Error ? err.message : t('error'));
-        
-        // 如果API失败，使用备用的模拟数据
-        const fallbackTree: FileNode[] = [
-          {
-            name: 'projects',
-            path: 'projects',
-            type: 'directory',
-            isExpanded: true,
-            children: [
-              {
-                name: 'InstaForge',
-                path: 'projects/InstaForge',
-                type: 'directory',
-                isExpanded: false,
-                children: [
-                  {
-                    name: 'README.md',
-                    path: 'projects/InstaForge/README.md',
-                    type: 'file'
-                  }
-                ]
-              }
-            ]
-          }
-        ];
-        setTree(fallbackTree);
-      } finally {
-        setLoading(false);
+  const fetchFileTree = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/filetree`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
+      
+      const data = await response.json();
+      setTree(data);
+    } catch (err) {
+      logger.error('Failed to fetch file tree:', err);
+      setError(err instanceof Error ? err.message : t('error'));
+      
+      const fallbackTree: FileNode[] = [
+        {
+          name: 'projects',
+          path: 'projects',
+          type: 'directory',
+          isExpanded: true,
+          children: [
+            {
+              name: 'InstaForge',
+              path: 'projects/InstaForge',
+              type: 'directory',
+              isExpanded: false,
+              children: [
+                {
+                  name: 'README.md',
+                  path: 'projects/InstaForge/README.md',
+                  type: 'file'
+                }
+              ]
+            }
+          ]
+        }
+      ];
+      setTree(fallbackTree);
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
 
-    fetchFileTree();
-  }, [locale]);
+  useEffect(() => {
+     fetchFileTree();
+   }, [locale, fetchFileTree]);
 
   const toggleDirectory = (path: string) => {
     const updateTree = (nodes: FileNode[]): FileNode[] => {

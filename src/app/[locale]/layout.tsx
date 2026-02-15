@@ -3,6 +3,8 @@ import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { SearchProvider } from "@/contexts/SearchContext";
+import { SearchDialogWrapper } from "@/components/SearchDialogWrapper";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -18,7 +20,7 @@ export default async function LocaleLayout({
   const { locale } = await params;
   
   // Ensure that the incoming `locale` is valid
-  if (!routing.locales.includes(locale as any)) {
+  if (!routing.locales.includes(locale as typeof routing.locales[number])) {
     notFound();
   }
 
@@ -34,7 +36,10 @@ export default async function LocaleLayout({
         enableSystem
         disableTransitionOnChange
       >
-        {children}
+        <SearchProvider>
+          <SearchDialogWrapper />
+          {children}
+        </SearchProvider>
       </ThemeProvider>
     </NextIntlClientProvider>
   );

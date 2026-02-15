@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Github, Star, Loader2 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface GitHubStarProps {
   repoUrl: string;
@@ -20,13 +21,13 @@ const loadCacheFromStorage = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const data = JSON.parse(stored);
-      Object.entries(data).forEach(([key, value]: [string, any]) => {
+      const data = JSON.parse(stored) as Record<string, { count: number; timestamp: number }>;
+      Object.entries(data).forEach(([key, value]) => {
         starCountCache.set(key, value);
       });
     }
-  } catch (error) {
-    console.warn('Failed to load GitHub star cache:', error);
+  } catch {
+    // Silently handle cache load failure
   }
 };
 
@@ -35,8 +36,8 @@ const saveCacheToStorage = () => {
   try {
     const data = Object.fromEntries(starCountCache);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.warn('Failed to save GitHub star cache:', error);
+  } catch {
+    // Silently handle cache save failure
   }
 };
 
@@ -112,7 +113,7 @@ const GitHubStar: React.FC<GitHubStarProps> = ({ repoUrl, className = '' }) => {
 
         if (!response.ok) {
           if (response.status === 403 || response.status === 429) {
-            console.warn(`GitHub API rate limited (${response.status}), using fallback`);
+            logger.warn(`GitHub API rate limited (${response.status}), using fallback`);
             if (cached) {
               setStarCount(cached.count);
             } else {
@@ -133,7 +134,7 @@ const GitHubStar: React.FC<GitHubStarProps> = ({ repoUrl, className = '' }) => {
         setStarCount(count);
         setError(null);
       } catch (err) {
-        console.error('Failed to fetch star count:', err);
+        logger.error('Failed to fetch star count:', err);
         if (cached) {
           setStarCount(cached.count);
         } else {

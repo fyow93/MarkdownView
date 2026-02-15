@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,77 +24,40 @@ interface FileTreeItem {
   size?: number;
 }
 
-// 主要的文件树下拉组件
 export const DropdownFileTree: React.FC<{
   onFileSelect: (filePath: string) => void;
   selectedFile: string;
   refreshTrigger?: number;
-}> = ({ onFileSelect, selectedFile, refreshTrigger }) => {
+}> = React.memo(({ onFileSelect, selectedFile, refreshTrigger }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [fileTree, setFileTree] = useState<FileTreeItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
-  const [projectRoot, setProjectRoot] = useState<string>('');
-  const locale = useLocale();
   const t = useTranslations('FileTree');
 
-  // 获取当前项目根目录
-  const fetchCurrentProjectRoot = async () => {
-    try {
-      const response = await fetch(`/${locale}/api/config/project-root`);
-      if (response.ok) {
-        const data = await response.json();
-        setProjectRoot(data.projectRoot || '');
-      }
-    } catch (error) {
-      console.error('Failed to fetch current project root:', error);
-    }
-  };
-
-  // 获取文件树
-  const fetchFileTree = async () => {
+  const fetchFileTree = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await fetch(`/${locale}/api/filetree`);
+      const response = await fetch(`/api/filetree`);
       const data = await response.json();
       
       if (response.ok) {
         // API返回的是数组，直接使用
         setFileTree(Array.isArray(data) ? data : []);
-        console.log('📁 File tree loaded:', data);
       } else {
         setError(data.error || t('error'));
       }
-    } catch (err) {
+    } catch {
       setError(t('error'));
-      console.error('Failed to fetch file tree:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  const toggleDirectory = (path: string) => {
-    setExpandedDirs(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(path)) {
-        newSet.delete(path);
-      } else {
-        newSet.add(path);
-      }
-      // 保存展开状态到 localStorage
-      try {
-        localStorage.setItem('filetree-expanded-dirs', JSON.stringify(Array.from(newSet)));
-      } catch (error) {
-        console.warn('Failed to save expanded directories:', error);
-      }
-      return newSet;
-    });
-  };
-
-  const renderFileTree = (items: FileTreeItem[], level = 0) => {
+  const renderFileTree = useCallback((items: FileTreeItem[], level = 0) => {
     return items.map((item, index) => {
       const isDirectory = item.type === 'directory';
       const isExpanded = expandedDirs.has(item.path);
@@ -109,7 +72,20 @@ export const DropdownFileTree: React.FC<{
             style={{ paddingLeft: `${level * 12 + 6}px` }}
             onClick={() => {
               if (isDirectory) {
-                toggleDirectory(item.path);
+                setExpandedDirs(prev => {
+                  const newSet = new Set(prev);
+                  if (newSet.has(item.path)) {
+                    newSet.delete(item.path);
+                  } else {
+                    newSet.add(item.path);
+                  }
+                  try {
+                    localStorage.setItem('filetree-expanded-dirs', JSON.stringify(Array.from(newSet)));
+                  } catch {
+                    // Silently handle save failure
+                  }
+                  return newSet;
+                });
               } else {
                 onFileSelect(item.path);
                 setIsOpen(false);
@@ -146,21 +122,23 @@ export const DropdownFileTree: React.FC<{
         </div>
       );
     });
-  };
+  }, [expandedDirs, selectedFile, onFileSelect]);
 
-  const getVisibleItemCount = (items: FileTreeItem[]): number => {
-    let count = 0;
-    items.forEach(item => {
-      count++;
-      if (item.type === 'directory' && expandedDirs.has(item.path) && item.children) {
-        count += getVisibleItemCount(item.children);
-      }
-    });
-    return count;
-  };
+  const getVisibleItemCount = useMemo(() => {
+    const countRecursive = (items: FileTreeItem[]): number => {
+      let count = 0;
+      items.forEach(item => {
+        count++;
+        if (item.type === 'directory' && expandedDirs.has(item.path) && item.children) {
+          count += countRecursive(item.children);
+        }
+      });
+      return count;
+    };
+    return countRecursive(fileTree);
+  }, [fileTree, expandedDirs]);
 
-  // 从 localStorage 恢复展开状态
-  const loadExpandedDirs = () => {
+  const loadExpandedDirs = useCallback(() => {
     try {
       const saved = localStorage.getItem('filetree-expanded-dirs');
       if (saved) {
@@ -169,33 +147,26 @@ export const DropdownFileTree: React.FC<{
           setExpandedDirs(new Set(dirs));
         }
       }
-    } catch (error) {
-      console.warn('Failed to load expanded directories:', error);
+    } catch {
+      // Silently handle load failure
     }
-  };
+  }, []);
 
-  // 初始化和依赖项变化时重新获取
   useEffect(() => {
-    fetchCurrentProjectRoot();
     fetchFileTree();
     
-    // 只在初始加载时恢复展开状态，目录切换时清空
     if (refreshTrigger === 0) {
       loadExpandedDirs();
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger, fetchFileTree, loadExpandedDirs]);
 
-  // 确保在目录切换时清空展开状态，避免旧状态影响新目录
   useEffect(() => {
     if (refreshTrigger !== undefined && refreshTrigger > 0) {
       setExpandedDirs(new Set());
       setIsOpen(false);
-      // 清空保存的展开状态
       localStorage.removeItem('filetree-expanded-dirs');
     }
   }, [refreshTrigger]);
-
-  const visibleCount = getVisibleItemCount(fileTree);
 
   return (
     <div className="relative">
@@ -207,9 +178,9 @@ export const DropdownFileTree: React.FC<{
       >
         <FolderTree className="h-4 w-4 text-primary" />
         <span className="text-sm">{t('fileTree')}</span>
-        {visibleCount > 0 && (
+        {getVisibleItemCount > 0 && (
           <Badge variant="secondary" className="text-xs">
-            {visibleCount}
+            {getVisibleItemCount}
           </Badge>
         )}
         {isOpen ? (
@@ -250,4 +221,6 @@ export const DropdownFileTree: React.FC<{
       )}
     </div>
   );
-}; 
+});
+
+DropdownFileTree.displayName = 'DropdownFileTree'; 
